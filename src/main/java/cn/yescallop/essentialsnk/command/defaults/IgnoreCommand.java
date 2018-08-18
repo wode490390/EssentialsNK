@@ -12,8 +12,6 @@ public class IgnoreCommand extends CommandBase {
 
     public IgnoreCommand(EssentialsAPI api) {
         super("ignore", api);
-        this.usageMessage = "/ignore <player>";
-
         this.commandParameters.put("default", new CommandParameter[] {
                 new CommandParameter("player", CommandParamType.TARGET, false)
         });
@@ -43,7 +41,6 @@ public class IgnoreCommand extends CommandBase {
                 return false;
             }
         }
-
 
         if (api.ignore(player.getUniqueId(), toIgnore.getUniqueId())) {
             sender.sendMessage("Successfully ignored");
