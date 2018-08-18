@@ -1,5 +1,5 @@
 name: EssentialsNK
-version: "1.2.0"
+version: "1.3.0"
 api: ["1.0.6"]
 author: Scallop
 description: EssentialsNK
@@ -71,6 +71,8 @@ permissions:
   essentialsnk.ping:
     default: true
   essentialsnk.realname:
+    default: op
+  essentialsnk.rename:
     default: op
   essentialsnk.repair:
     default: op
