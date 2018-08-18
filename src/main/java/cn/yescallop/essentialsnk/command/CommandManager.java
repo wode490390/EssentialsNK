@@ -20,6 +20,7 @@ public class CommandManager {
         map.register("EssentialsNK", new BreakCommand(api));
         map.register("EssentialsNK", new BroadcastCommand(api));
         map.register("EssentialsNK", new BurnCommand(api));
+        map.register("EssentialsNK", new RenameCommand(api));
         map.register("EssentialsNK", new ClearInventoryCommand(api));
         map.register("EssentialsNK", new CompassCommand(api));
         map.register("EssentialsNK", new DepthCommand(api));
