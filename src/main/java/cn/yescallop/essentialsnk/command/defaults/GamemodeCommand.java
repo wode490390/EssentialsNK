@@ -3,6 +3,8 @@ package cn.yescallop.essentialsnk.command.defaults;
 import cn.nukkit.Player;
 import cn.nukkit.Server;
 import cn.nukkit.command.CommandSender;
+import cn.nukkit.command.data.CommandParamType;
+import cn.nukkit.command.data.CommandParameter;
 import cn.nukkit.lang.TranslationContainer;
 import cn.nukkit.utils.TextFormat;
 import cn.yescallop.essentialsnk.EssentialsAPI;
@@ -14,6 +16,15 @@ public class GamemodeCommand extends CommandBase {
     public GamemodeCommand(EssentialsAPI api) {
         super("gamemode", api);
         this.setAliases(new String[]{"gm", "gma", "gmc", "gms", "gmt", "adventure", "creative", "survival", "spectator", "viewer"});
+        this.commandParameters.put("default", new CommandParameter[]{
+                new CommandParameter("mode", CommandParamType.INT, false),
+                new CommandParameter("target", CommandParamType.TARGET, true)
+        });
+        this.commandParameters.put("byString", new CommandParameter[]{
+                new CommandParameter("mode", new String[]{"survival", "s", "creative", "c",
+                        "adventure", "a", "spectator", "sp", "viewer", "view", "v"}),
+                new CommandParameter("target", CommandParamType.TARGET, true)
+        });
     }
 
     public boolean execute(CommandSender sender, String label, String[] args) {
@@ -67,20 +78,22 @@ public class GamemodeCommand extends CommandBase {
             }
             switch (label.toLowerCase()) {
                 case "survival":
-                case "gms":
+                case "s":
                     gamemode = Player.SURVIVAL;
                     break;
                 case "creative":
-                case "gmc":
+                case "c":
                     gamemode = Player.CREATIVE;
                     break;
                 case "adventure":
-                case "gma":
+                case "a":
                     gamemode = Player.ADVENTURE;
                     break;
                 case "spectator":
                 case "viewer":
-                case "gmt":
+                case "view":
+                case "sp":
+                case "v":
                     gamemode = Player.SPECTATOR;
                     break;
                 default:
@@ -99,9 +112,9 @@ public class GamemodeCommand extends CommandBase {
     private void sendUsage(CommandSender sender, String label) {
         String usage;
         if (label.toLowerCase().equals("gamemode") || label.toLowerCase().equals("gm")) {
-            usage = Language.translate("commands.gamemode.usage1", new String[]{label.toLowerCase()});
+            usage = Language.translate("commands.gamemode.usage1", label.toLowerCase());
         } else {
-            usage = Language.translate("commands.gamemode.usage2", new String[]{label.toLowerCase()});
+            usage = Language.translate("commands.gamemode.usage2", label.toLowerCase());
         }
         sender.sendMessage(new TranslationContainer("commands.generic.usage", usage));
     }

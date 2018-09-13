@@ -2,6 +2,8 @@ package cn.yescallop.essentialsnk.command.defaults.home;
 
 import cn.nukkit.Player;
 import cn.nukkit.command.CommandSender;
+import cn.nukkit.command.data.CommandParamType;
+import cn.nukkit.command.data.CommandParameter;
 import cn.nukkit.level.Location;
 import cn.nukkit.utils.TextFormat;
 import cn.yescallop.essentialsnk.EssentialsAPI;
@@ -13,6 +15,9 @@ public class HomeCommand extends CommandBase {
     public HomeCommand(EssentialsAPI api) {
         super("home", api);
         this.setAliases(new String[]{"homes"});
+        this.commandParameters.put("default", new CommandParameter[] {
+                new CommandParameter("name", CommandParamType.TEXT, true)
+        });
     }
 
     public boolean execute(CommandSender sender, String label, String[] args) {

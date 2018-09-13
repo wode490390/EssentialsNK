@@ -24,7 +24,7 @@ public class RenameCommand extends CommandBase {
     }
 
     public boolean execute(CommandSender sender, String label, String[] args) {
-        if (!this.testPermission(sender) && !this.testIngame(sender)) {
+        if (!this.testPermission(sender) || !this.testIngame(sender)) {
             return false;
         }
 
@@ -44,7 +44,7 @@ public class RenameCommand extends CommandBase {
                 item.setCustomName(newName.toString());
                 player.getInventory().setItemInHand(item);
             } else {
-                Language.translate("commands.rename.length");
+                player.sendMessage(Language.translate("commands.rename.length"));
                 return false;
             }
         }

@@ -2,6 +2,8 @@ package cn.yescallop.essentialsnk.command.defaults;
 
 import cn.nukkit.Player;
 import cn.nukkit.command.CommandSender;
+import cn.nukkit.command.data.CommandParamType;
+import cn.nukkit.command.data.CommandParameter;
 import cn.nukkit.potion.Effect;
 import cn.nukkit.utils.TextFormat;
 import cn.yescallop.essentialsnk.EssentialsAPI;
@@ -12,6 +14,10 @@ public class SpeedCommand extends CommandBase {
 
     public SpeedCommand(EssentialsAPI api) {
         super("speed", api);
+        this.commandParameters.put("default", new CommandParameter[] {
+                new CommandParameter("multiplier", CommandParamType.INT, false),
+                new CommandParameter("target", CommandParamType.TARGET, true)
+        });
     }
 
     @Override

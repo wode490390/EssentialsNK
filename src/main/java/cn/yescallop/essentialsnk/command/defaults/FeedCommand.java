@@ -3,6 +3,8 @@ package cn.yescallop.essentialsnk.command.defaults;
 import cn.nukkit.Player;
 import cn.nukkit.PlayerFood;
 import cn.nukkit.command.CommandSender;
+import cn.nukkit.command.data.CommandParamType;
+import cn.nukkit.command.data.CommandParameter;
 import cn.nukkit.utils.TextFormat;
 import cn.yescallop.essentialsnk.EssentialsAPI;
 import cn.yescallop.essentialsnk.Language;
@@ -13,6 +15,9 @@ public class FeedCommand extends CommandBase {
     public FeedCommand(EssentialsAPI api) {
         super("feed", api);
         this.setAliases(new String[]{"eat"});
+        this.commandParameters.put("default", new CommandParameter[] {
+                new CommandParameter("target", CommandParamType.TARGET, true)
+        });
     }
 
     public boolean execute(CommandSender sender, String label, String[] args) {
