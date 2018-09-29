@@ -15,7 +15,7 @@ public class GamemodeCommand extends CommandBase {
 
     public GamemodeCommand(EssentialsAPI api) {
         super("gamemode", api);
-        this.setAliases(new String[]{"gm", "gma", "gmc", "gms", "gmt", "adventure", "creative", "survival", "spectator", "viewer"});
+        this.setAliases(new String[]{"gm", "gma", "gmc", "gms", "gmsp", "gmt", "adventure", "creative", "survival", "spectator", "viewer"});
         this.commandParameters.put("default", new CommandParameter[]{
                 new CommandParameter("mode", CommandParamType.INT, false),
                 new CommandParameter("target", CommandParamType.TARGET, true)
@@ -77,16 +77,19 @@ public class GamemodeCommand extends CommandBase {
                 }
             }
             switch (label.toLowerCase()) {
+                case "gms":
                 case "survival":
                 case "s":
                     gamemode = Player.SURVIVAL;
                     break;
                 case "creative":
                 case "c":
+                case "gmc":
                     gamemode = Player.CREATIVE;
                     break;
                 case "adventure":
                 case "a":
+                case "gma":
                     gamemode = Player.ADVENTURE;
                     break;
                 case "spectator":
@@ -94,6 +97,8 @@ public class GamemodeCommand extends CommandBase {
                 case "view":
                 case "sp":
                 case "v":
+                case "gmsp":
+                case "gmt":
                     gamemode = Player.SPECTATOR;
                     break;
                 default:
