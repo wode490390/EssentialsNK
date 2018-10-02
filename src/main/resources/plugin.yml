@@ -1,13 +1,13 @@
 name: EssentialsNK
-version: "1.4.1"
-api: ["1.0.7"]
+version: "1.3.0_edited"
+api: ["1.0.6"]
 author: Scallop
 description: EssentialsNK
 main: cn.yescallop.essentialsnk.EssentialsNK
 
 permissions:
   essentialsnk.back:
-    default: true
+    default: op
   essentialsnk.break:
     default: op
   essentialsnk.break.bedrock:
@@ -57,7 +57,7 @@ permissions:
   essentialsnk.ignore:
     default: true
   essentialsnk.itemdb:
-    default: true
+    default: op
   essentialsnk.jump:
     default: op
   essentialsnk.kickall:
@@ -85,7 +85,7 @@ permissions:
   essentialsnk.setwarp:
     default: op
   essentialsnk.spawn:
-    default: true
+    default: op
   essentialsnk.spawn.others:
     default: op
   essentialsnk.setspawn:
@@ -99,17 +99,17 @@ permissions:
   essentialsnk.top:
     default: op
   essentialsnk.tpa:
-    default: true
+    default: op
   essentialsnk.tpaall:
     default: op
   essentialsnk.tpaccept:
-    default: true
+    default: op
   essentialsnk.tpahere:
-    default: true
+    default: op
   essentialsnk.tpall:
     default: op
   essentialsnk.tpdeny:
-    default: true
+    default: op
   essentialsnk.tphere:
     default: op
   essentialsnk.vanish:
@@ -117,8 +117,8 @@ permissions:
   essentialsnk.vanish.others:
     default: op
   essentialsnk.warp:
-    default: true
+    default: op
   essentialsnk.warp.others:
     default: op
   essentialsnk.world:
-    default: true
+    default: op
