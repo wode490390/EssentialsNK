@@ -1,10 +1,10 @@
 package cn.yescallop.essentialsnk;
 
 import cn.nukkit.AdventureSettings;
-import cn.nukkit.IPlayer;
 import cn.nukkit.Player;
 import cn.nukkit.Server;
 import cn.nukkit.block.Block;
+import cn.nukkit.command.CommandSender;
 import cn.nukkit.entity.weather.EntityLightning;
 import cn.nukkit.item.Item;
 import cn.nukkit.item.ItemArmor;
@@ -17,17 +17,24 @@ import cn.nukkit.nbt.tag.CompoundTag;
 import cn.nukkit.nbt.tag.DoubleTag;
 import cn.nukkit.nbt.tag.FloatTag;
 import cn.nukkit.nbt.tag.ListTag;
+import cn.nukkit.permission.PermissionAttachmentInfo;
 import cn.nukkit.plugin.PluginLogger;
 import cn.nukkit.utils.Config;
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
+import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 
 import java.io.File;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class EssentialsAPI {
 
+    private static final Pattern COOLDOWN_PATTERN = Pattern.compile("^essentialsnk\\.cooldown\\.([0-9]+)$");
     public static final Integer[] NON_SOLID_BLOCKS = new Integer[]{Block.AIR, Block.SAPLING, Block.WATER, Block.STILL_WATER, Block.LAVA, Block.STILL_LAVA, Block.COBWEB, Block.TALL_GRASS, Block.BUSH, Block.DANDELION,
             Block.POPPY, Block.BROWN_MUSHROOM, Block.RED_MUSHROOM, Block.TORCH, Block.FIRE, Block.WHEAT_BLOCK, Block.SIGN_POST, Block.WALL_SIGN, Block.SUGARCANE_BLOCK,
             Block.PUMPKIN_STEM, Block.MELON_STEM, Block.VINE, Block.CARROT_BLOCK, Block.POTATO_BLOCK, Block.DOUBLE_PLANT};
@@ -35,6 +42,7 @@ public class EssentialsAPI {
     private static Duration THIRTY_DAYS = Duration.ZERO.plusDays(30);
     private Vector3 temporalVector = new Vector3();
     private EssentialsNK plugin;
+    private final Object2LongMap<CommandSender> cooldown = new Object2LongOpenHashMap<>();
     private Map<Player, Location> playerLastLocation = new HashMap<>();
     private Map<Integer, TPRequest> tpRequests = new HashMap<>();
     private List<Player> vanishedPlayers = new ArrayList<>();
@@ -50,6 +58,7 @@ public class EssentialsAPI {
         this.warpConfig = new Config(new File(plugin.getDataFolder(), "warp.yml"), Config.YAML);
         this.muteConfig = new Config(new File(plugin.getDataFolder(), "mute.yml"), Config.YAML);
         this.ignoreConfig = new Config(new File(plugin.getDataFolder(), "ignore.yml"), Config.YAML);
+        cooldown.defaultReturnValue(-1);
     }
 
     public static EssentialsAPI getInstance() {
@@ -70,6 +79,24 @@ public class EssentialsAPI {
 
     public Location getLastLocation(Player player) {
         return this.playerLastLocation.get(player);
+    }
+
+    public boolean hasCooldown(CommandSender sender) {
+        for (PermissionAttachmentInfo info : sender.getEffectivePermissions().values()) {
+            Matcher matcher = COOLDOWN_PATTERN.matcher(info.getPermission());
+            if (matcher.find()) {
+                long currentTime = System.currentTimeMillis();
+                long lastCooldown = this.cooldown.getLong(sender) + TimeUnit.SECONDS.toMillis(Integer.parseInt(matcher.group(1)));
+
+                if (currentTime > lastCooldown) {
+                    this.cooldown.put(sender, currentTime);
+                } else {
+                    long timeLeft = TimeUnit.MILLISECONDS.toSeconds(lastCooldown - currentTime);
+                    sender.sendMessage(Language.translate("commands.generic.cooldown", timeLeft));
+                }
+            }
+        }
+        return false;
     }
 
     public boolean switchCanFly(Player player) {

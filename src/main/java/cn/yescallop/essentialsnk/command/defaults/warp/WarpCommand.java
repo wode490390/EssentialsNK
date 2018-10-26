@@ -47,6 +47,10 @@ public class WarpCommand extends CommandBase {
             if (!this.testIngame(sender)) {
                 return false;
             }
+            if (api.hasCooldown(sender)) {
+                return true;
+            }
+
             player = (Player) sender;
         } else {
             if (!sender.hasPermission("essentialsnk.warp.others")) {

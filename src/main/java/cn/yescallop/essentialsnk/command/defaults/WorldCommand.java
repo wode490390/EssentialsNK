@@ -29,6 +29,9 @@ public class WorldCommand extends CommandBase {
             this.sendUsage(sender);
             return false;
         }
+        if (api.hasCooldown(sender)) {
+            return true;
+        }
         if (!api.getServer().isLevelGenerated(args[0])) {
             sender.sendMessage(TextFormat.RED + Language.translate("commands.world.notfound", args[0]));
             return false;

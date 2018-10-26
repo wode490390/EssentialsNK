@@ -22,6 +22,9 @@ public class TPAAllCommand extends CommandBase {
         if (!this.testPermission(sender)) {
             return false;
         }
+        if (api.hasCooldown(sender)) {
+            return true;
+        }
         Player player;
         if (args.length == 0) {
             if (!this.testIngame(sender)) {

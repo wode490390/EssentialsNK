@@ -45,6 +45,9 @@ public class SpawnCommand extends CommandBase {
         Player p;
 
         if (args.length == 0) {
+            if (api.hasCooldown(sender)) {
+                return true;
+            }
             p = (Player) sender;
         } else {
             p = getAPI().getServer().getPlayer(args[0]);
