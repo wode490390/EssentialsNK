@@ -93,7 +93,7 @@ public class EssentialsAPI {
             }
         }
 
-        if (cooldown != Long.MAX_VALUE) {
+        if (!sender.isOp() && cooldown != Long.MAX_VALUE) {
             long currentTime = System.currentTimeMillis();
             long lastCooldown = this.cooldown.getLong(sender) + TimeUnit.SECONDS.toMillis(cooldown);
 
