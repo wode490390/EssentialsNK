@@ -82,18 +82,27 @@ public class EssentialsAPI {
     }
 
     public boolean hasCooldown(CommandSender sender) {
+        long cooldown = Long.MAX_VALUE;
         for (PermissionAttachmentInfo info : sender.getEffectivePermissions().values()) {
             Matcher matcher = COOLDOWN_PATTERN.matcher(info.getPermission());
             if (matcher.find()) {
-                long currentTime = System.currentTimeMillis();
-                long lastCooldown = this.cooldown.getLong(sender) + TimeUnit.SECONDS.toMillis(Integer.parseInt(matcher.group(1)));
-
-                if (currentTime > lastCooldown) {
-                    this.cooldown.put(sender, currentTime);
-                } else {
-                    long timeLeft = TimeUnit.MILLISECONDS.toSeconds(lastCooldown - currentTime);
-                    sender.sendMessage(Language.translate("commands.generic.cooldown", timeLeft));
+                int time = Integer.parseInt(matcher.group(1));
+                if (time < cooldown) {
+                    cooldown = time;
                 }
+            }
+        }
+
+        if (cooldown != Long.MAX_VALUE) {
+            long currentTime = System.currentTimeMillis();
+            long lastCooldown = this.cooldown.getLong(sender) + TimeUnit.SECONDS.toMillis(cooldown);
+
+            if (currentTime > lastCooldown) {
+                this.cooldown.put(sender, currentTime);
+            } else {
+                long timeLeft = TimeUnit.MILLISECONDS.toSeconds(lastCooldown - currentTime);
+                sender.sendMessage(Language.translate("commands.generic.cooldown", timeLeft));
+                return true;
             }
         }
         return false;
