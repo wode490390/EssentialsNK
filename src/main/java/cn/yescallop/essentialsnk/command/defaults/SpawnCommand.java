@@ -42,12 +42,13 @@ public class SpawnCommand extends CommandBase {
             return false;
         }
 
+        if (api.hasCooldown(sender)) {
+            return true;
+        }
+
         Player p;
 
         if (args.length == 0) {
-            if (api.hasCooldown(sender)) {
-                return true;
-            }
             p = (Player) sender;
         } else {
             p = getAPI().getServer().getPlayer(args[0]);
@@ -58,8 +59,10 @@ public class SpawnCommand extends CommandBase {
             return false;
         }
 
-        p.teleport(getAPI().getServer().getDefaultLevel().getSpawnLocation());
-        p.sendMessage(TextFormat.YELLOW + Language.translate("commands.generic.teleporting"));
+        api.onTP(p, api.getServer().getDefaultLevel().getSpawnLocation(), Language.translate("commands.generic.teleporting"));
+        if (args.length == 1) {
+            sender.sendMessage(Language.translate("commands.generic.teleporting"));
+        }
         return true;
     }
 }

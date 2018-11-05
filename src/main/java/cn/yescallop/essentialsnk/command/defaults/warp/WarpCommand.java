@@ -42,13 +42,15 @@ public class WarpCommand extends CommandBase {
             sender.sendMessage(TextFormat.RED + Language.translate("commands.warp.notexists", args[0]));
             return false;
         }
+
+        if (api.hasCooldown(sender)) {
+            return true;
+        }
+
         Player player;
         if (args.length == 1) {
             if (!this.testIngame(sender)) {
                 return false;
-            }
-            if (api.hasCooldown(sender)) {
-                return true;
             }
 
             player = (Player) sender;
@@ -63,10 +65,9 @@ public class WarpCommand extends CommandBase {
                 return false;
             }
         }
-        player.teleport(warp);
-        player.sendMessage(Language.translate("commands.warp.success", args[0]));
+        api.onTP(player, warp, Language.translate("commands.warp.success", args[0]));
         if (sender != player) {
-            player.sendMessage(Language.translate("commands.warp.success.other", new String[]{player.getDisplayName(), args[0]}));
+            player.sendMessage(Language.translate("commands.warp.success.other", player.getDisplayName(), args[0]));
         }
         return true;
     }

@@ -35,6 +35,7 @@ import java.util.regex.Pattern;
 public class EssentialsAPI {
 
     private static final Pattern COOLDOWN_PATTERN = Pattern.compile("^essentialsnk\\.cooldown\\.([0-9]+)$");
+    private static final Pattern TP_COOLDOWN_PATTERN = Pattern.compile("^essentialsnk\\.tp\\.cooldown\\.([0-9]+)$");
     public static final Integer[] NON_SOLID_BLOCKS = new Integer[]{Block.AIR, Block.SAPLING, Block.WATER, Block.STILL_WATER, Block.LAVA, Block.STILL_LAVA, Block.COBWEB, Block.TALL_GRASS, Block.BUSH, Block.DANDELION,
             Block.POPPY, Block.BROWN_MUSHROOM, Block.RED_MUSHROOM, Block.TORCH, Block.FIRE, Block.WHEAT_BLOCK, Block.SIGN_POST, Block.WALL_SIGN, Block.SUGARCANE_BLOCK,
             Block.PUMPKIN_STEM, Block.MELON_STEM, Block.VINE, Block.CARROT_BLOCK, Block.POTATO_BLOCK, Block.DOUBLE_PLANT};
@@ -43,6 +44,7 @@ public class EssentialsAPI {
     private Vector3 temporalVector = new Vector3();
     private EssentialsNK plugin;
     private final Object2LongMap<CommandSender> cooldown = new Object2LongOpenHashMap<>();
+    private final List<TPCooldown> tpCooldowns = new ArrayList<>();
     private Map<Player, Location> playerLastLocation = new HashMap<>();
     private Map<Integer, TPRequest> tpRequests = new HashMap<>();
     private List<Player> vanishedPlayers = new ArrayList<>();
@@ -84,7 +86,7 @@ public class EssentialsAPI {
     public boolean hasCooldown(CommandSender sender) {
         long cooldown = Long.MAX_VALUE;
         for (PermissionAttachmentInfo info : sender.getEffectivePermissions().values()) {
-            Matcher matcher = COOLDOWN_PATTERN.matcher(info.getPermission());
+            Matcher matcher = COOLDOWN_PATTERN.matcher(info.getPermission().toLowerCase());
             if (matcher.find()) {
                 int time = Integer.parseInt(matcher.group(1));
                 if (time < cooldown) {
@@ -93,7 +95,7 @@ public class EssentialsAPI {
             }
         }
 
-        if (!sender.isOp() && cooldown != Long.MAX_VALUE) {
+        if (!sender.isOp() && cooldown < Long.MAX_VALUE) {
             long currentTime = System.currentTimeMillis();
             long lastCooldown = this.cooldown.getLong(sender) + TimeUnit.SECONDS.toMillis(cooldown);
 
@@ -106,6 +108,41 @@ public class EssentialsAPI {
             }
         }
         return false;
+    }
+
+    private OptionalInt hasTPCooldown(Player player) {
+        int cooldown = Integer.MAX_VALUE;
+        for (PermissionAttachmentInfo info : player.getEffectivePermissions().values()) {
+            Matcher matcher = TP_COOLDOWN_PATTERN.matcher(info.getPermission().toLowerCase());
+            if (matcher.find()) {
+                int time = Integer.parseInt(matcher.group(1));
+                if (time < cooldown) {
+                    cooldown = time;
+                }
+            }
+        }
+
+        if (!player.isOp() && cooldown < Integer.MAX_VALUE) {
+            return OptionalInt.of(cooldown);
+        }
+        return OptionalInt.empty();
+    }
+
+    public void onTP(Player player, Position position, String message) {
+        OptionalInt cooldown = hasTPCooldown(player);
+
+        if (cooldown.isPresent()) {
+            player.sendMessage(Language.translate("commands.generic.teleporation.cooldown", cooldown.getAsInt()));
+            tpCooldowns.add(new TPCooldown(player, position,
+                    System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(cooldown.getAsInt()), message));
+        } else {
+            player.teleport(position);
+            player.sendMessage(message);
+        }
+    }
+
+    public List<TPCooldown> getTpCooldowns() {
+        return tpCooldowns;
     }
 
     public boolean switchCanFly(Player player) {
@@ -171,12 +208,12 @@ public class EssentialsAPI {
         lightning.spawnToAll();
     }
 
-    private int getHashCode(Player from, Player to, boolean isTo) {
+    private static int getHashCode(Player from, Player to, boolean isTo) {
         return from.hashCode() + to.hashCode() + Boolean.hashCode(isTo);
     }
 
     public void requestTP(Player from, Player to, boolean isTo) {
-        this.tpRequests.put(this.getHashCode(from, to, isTo), new TPRequest(System.currentTimeMillis(), from, to, isTo));
+        this.tpRequests.put(getHashCode(from, to, isTo), new TPRequest(System.currentTimeMillis(), from, to, isTo));
     }
 
     public TPRequest getLatestTPRequestTo(Player player) {
@@ -191,19 +228,20 @@ public class EssentialsAPI {
 
     public TPRequest getTPRequestBetween(Player from, Player to) {
         int key;
-        if (this.tpRequests.containsKey(key = this.getHashCode(from, to, true)) || this.tpRequests.containsKey(key = this.getHashCode(from, to, false))) {
+        if (this.tpRequests.containsKey(key = getHashCode(from, to, true)) || this.tpRequests.containsKey(key = getHashCode(from, to, false))) {
             return this.tpRequests.get(key);
         }
         return null;
     }
 
     public boolean hasTPRequestBetween(Player from, Player to) {
-        return this.tpRequests.containsKey(this.getHashCode(from, to, true)) || this.tpRequests.containsKey(this.getHashCode(from, to, false));
+        return this.tpRequests.containsKey(getHashCode(from, to, true)) || this.tpRequests.containsKey(getHashCode(from, to, false));
     }
 
     public void removeTPRequestBetween(Player from, Player to) {
-        this.tpRequests.remove(this.getHashCode(from, to, true));
-        this.tpRequests.remove(this.getHashCode(from, to, false));
+        this.tpRequests.remove(getHashCode(from, to, true));
+        this.tpRequests.remove(getHashCode(from, to, false));
+
     }
 
     public void removeTPRequest(Player player) {

@@ -58,9 +58,9 @@ public class TPAcceptCommand extends CommandBase {
         from.sendMessage(Language.translate("commands.tpaccept.accepted", to.getDisplayName()));
         sender.sendMessage(Language.translate("commands.generic.teleporting"));
         if (request.isTo()) {
-            from.teleport(to);
+            api.onTP(from, to, Language.translate("commands.generic.teleporting"));
         } else {
-            to.teleport(from);
+            api.onTP(to, from, Language.translate("commands.generic.teleporting"));
         }
         api.removeTPRequestBetween(from, to);
         return true;

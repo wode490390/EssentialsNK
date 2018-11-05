@@ -43,7 +43,7 @@ public class TPACommand extends CommandBase {
             return false;
         }
         api.requestTP((Player) sender, player, true);
-        player.sendMessage(Language.translate("commands.tpa.invite", ((Player) sender).getName()));
+        player.sendMessage(Language.translate("commands.tpa.invite", sender.getName()));
         sender.sendMessage(Language.translate("commands.tpa.success", player.getDisplayName()));
         return true;
     }
