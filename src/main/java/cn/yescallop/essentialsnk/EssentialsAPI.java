@@ -20,8 +20,6 @@ import cn.nukkit.nbt.tag.ListTag;
 import cn.nukkit.permission.PermissionAttachmentInfo;
 import cn.nukkit.plugin.PluginLogger;
 import cn.nukkit.utils.Config;
-import it.unimi.dsi.fastutil.objects.Object2LongMap;
-import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 
 import java.io.File;
 import java.sql.Timestamp;
@@ -43,7 +41,7 @@ public class EssentialsAPI {
     private static Duration THIRTY_DAYS = Duration.ZERO.plusDays(30);
     private Vector3 temporalVector = new Vector3();
     private EssentialsNK plugin;
-    private final Object2LongMap<CommandSender> cooldown = new Object2LongOpenHashMap<>();
+    private final Map<CommandSender, Long> cooldown = new HashMap<>();
     private final List<TPCooldown> tpCooldowns = new ArrayList<>();
     private Map<Player, Location> playerLastLocation = new HashMap<>();
     private Map<Integer, TPRequest> tpRequests = new HashMap<>();
@@ -60,7 +58,6 @@ public class EssentialsAPI {
         this.warpConfig = new Config(new File(plugin.getDataFolder(), "warp.yml"), Config.YAML);
         this.muteConfig = new Config(new File(plugin.getDataFolder(), "mute.yml"), Config.YAML);
         this.ignoreConfig = new Config(new File(plugin.getDataFolder(), "ignore.yml"), Config.YAML);
-        cooldown.defaultReturnValue(-1);
     }
 
     public static EssentialsAPI getInstance() {
@@ -97,7 +94,7 @@ public class EssentialsAPI {
 
         if (!sender.isOp() && cooldown < Long.MAX_VALUE) {
             long currentTime = System.currentTimeMillis();
-            long lastCooldown = this.cooldown.getLong(sender) + TimeUnit.SECONDS.toMillis(cooldown);
+            long lastCooldown = this.cooldown.getOrDefault(sender, -1L) + TimeUnit.SECONDS.toMillis(cooldown);
 
             if (currentTime > lastCooldown) {
                 this.cooldown.put(sender, currentTime);
