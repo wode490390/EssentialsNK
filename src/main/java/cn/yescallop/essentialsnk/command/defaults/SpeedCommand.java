@@ -14,9 +14,12 @@ public class SpeedCommand extends CommandBase {
 
     public SpeedCommand(EssentialsAPI api) {
         super("speed", api);
+
+        // command parameters
+        commandParameters.clear();
         this.commandParameters.put("default", new CommandParameter[] {
                 new CommandParameter("multiplier", CommandParamType.INT, false),
-                new CommandParameter("target", CommandParamType.TARGET, true)
+                new CommandParameter("player", CommandParamType.TARGET, true)
         });
     }
 

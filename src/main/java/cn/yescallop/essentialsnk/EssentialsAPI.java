@@ -278,12 +278,12 @@ public class EssentialsAPI {
     }
 
     public boolean setHome(IPlayer player, String name, Location pos) {
-        this.homeConfig.reload();
-        checkAndUpdateLegacyHomes(player);
         return setHome(player.getUniqueId(), name, pos);
     }
 
     public boolean setHome(UUID uuid, String name, Location location) {
+        this.homeConfig.reload();
+        checkAndUpdateLegacyHomes(uuid);
         Map<String, Object> map = getHomeMap(uuid, true);
 
         boolean replaced = map.containsKey(name);
@@ -294,12 +294,12 @@ public class EssentialsAPI {
     }
 
     public Location getHome(IPlayer player, String name) {
-        this.homeConfig.reload();
-        checkAndUpdateLegacyHomes(player);
         return getHome(player.getUniqueId(), name);
     }
 
     public Location getHome(UUID uuid, String name) {
+        this.homeConfig.reload();
+        checkAndUpdateLegacyHomes(uuid);
         @SuppressWarnings("unchecked") Map<String, List<Object>> map = (Map) getHomeMap(uuid, false);
         List<Object> home = map.get(name);
         if (home == null || home.size() != 6) {
@@ -309,35 +309,35 @@ public class EssentialsAPI {
     }
 
     public void removeHome(IPlayer player, String name) {
-        this.homeConfig.reload();
-        checkAndUpdateLegacyHomes(player);
         removeHome(player.getUniqueId(), name);
     }
 
     public void removeHome(UUID uuid, String name) {
+        this.homeConfig.reload();
+        checkAndUpdateLegacyHomes(uuid);
         getHomeMap(uuid, true).remove(name);
         this.homeConfig.save();
     }
 
     public String[] getHomesList(IPlayer player) {
-        this.homeConfig.reload();
-        checkAndUpdateLegacyHomes(player);
         return getHomesList(player.getUniqueId());
     }
 
     public String[] getHomesList(UUID uuid) {
+        this.homeConfig.reload();
+        checkAndUpdateLegacyHomes(uuid);
         String[] list = getHomeMap(uuid, false).keySet().toArray(new String[0]);
         Arrays.sort(list, String.CASE_INSENSITIVE_ORDER);
         return list;
     }
 
     public boolean isHomeExists(IPlayer player, String name) {
-        this.homeConfig.reload();
-        checkAndUpdateLegacyHomes(player);
         return isHomeExists(player.getUniqueId(), name);
     }
 
     public boolean isHomeExists(UUID uuid, String name) {
+        this.homeConfig.reload();
+        checkAndUpdateLegacyHomes(uuid);
         return getHomeMap(uuid, false).containsKey(name);
     }
 
@@ -349,7 +349,11 @@ public class EssentialsAPI {
         return section;
     }
 
-    private void checkAndUpdateLegacyHomes(IPlayer player) {
+    private void checkAndUpdateLegacyHomes(UUID uuid) {
+        IPlayer player = getServer().getOfflinePlayer(uuid);
+        if (player == null) {
+            return;
+        }
         String uuidString = player.getUniqueId().toString();
         String name = player.getName().toLowerCase();
         if (this.homeConfig.exists(name)) {
@@ -433,7 +437,6 @@ public class EssentialsAPI {
 
     //for peace too -- lmlstarqaq
     public boolean mute(IPlayer player, Duration duration) {
-        checkAndUpdateLegacyMute(player);
         return mute(player.getUniqueId(), duration);
     }
 
@@ -442,6 +445,7 @@ public class EssentialsAPI {
     }
 
     public boolean mute(UUID uuid, Duration duration) {
+        checkAndUpdateLegacyMute(uuid);
         if (duration.isNegative() || duration.isZero()) return false;
         // t>30 => (t!=30 && t>=30) => (t!=30 && t-30>=0) => (t!=30 && !(t-30<0))
         if (duration.toDays() != 30 && !(duration.minus(THIRTY_DAYS).isNegative())) return false; // t>30
@@ -451,27 +455,23 @@ public class EssentialsAPI {
     }
 
     public Integer getRemainingTimeToUnmute(IPlayer player) {
-        this.muteConfig.reload();
-        checkAndUpdateLegacyMute(player);
         return getRemainingTimeToUnmute(player.getUniqueId());
     }
 
     public Integer getRemainingTimeToUnmute(UUID uuid) {
+        this.muteConfig.reload();
+        checkAndUpdateLegacyMute(uuid);
         Integer time = (Integer) this.muteConfig.get(uuid.toString());
         return time == null ? null : (int) (time - Timestamp.valueOf(LocalDateTime.now()).getTime() / 1000);
     }
 
     public boolean isMuted(IPlayer player) {
-        Integer time = this.getRemainingTimeToUnmute(player);
-        if (time == null) return false;
-        if (time <= 0) {
-            this.unmute(player);
-            return false;
-        }
-        return true;
+        return isMuted(player.getUniqueId());
     }
 
     public boolean isMuted(UUID uuid) {
+        this.muteConfig.reload();
+        checkAndUpdateLegacyMute(uuid);
         Integer time = this.getRemainingTimeToUnmute(uuid);
         if (time == null) return false;
         if (time <= 0) {
@@ -491,16 +491,20 @@ public class EssentialsAPI {
     }
 
     public void unmute(IPlayer player) {
-        checkAndUpdateLegacyMute(player);
         unmute(player.getUniqueId());
     }
 
     public void unmute(UUID uuid) {
+        checkAndUpdateLegacyMute(uuid);
         this.muteConfig.remove(uuid.toString());
         this.muteConfig.save();
     }
 
-    private void checkAndUpdateLegacyMute(IPlayer player) {
+    private void checkAndUpdateLegacyMute(UUID uuid) {
+        IPlayer player = getServer().getOfflinePlayer(uuid);
+        if (player == null) {
+            return;
+        }
         String uuidString = player.getUniqueId().toString();
         String name = player.getName().toLowerCase();
         if (this.muteConfig.exists(name)) {

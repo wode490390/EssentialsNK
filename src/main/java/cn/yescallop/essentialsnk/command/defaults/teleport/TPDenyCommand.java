@@ -15,8 +15,11 @@ public class TPDenyCommand extends CommandBase {
     public TPDenyCommand(EssentialsAPI api) {
         super("tpdeny", api);
         this.setAliases(new String[]{"tpno"});
+
+        // command parameters
+        commandParameters.clear();
         this.commandParameters.put("default", new CommandParameter[] {
-                new CommandParameter("target", CommandParamType.TARGET, true)
+                new CommandParameter("player", CommandParamType.TARGET, true)
         });
     }
 

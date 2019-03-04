@@ -13,8 +13,11 @@ public class FlyCommand extends CommandBase {
 
     public FlyCommand(EssentialsAPI api) {
         super("fly", api);
+
+        // command parameters
+        commandParameters.clear();
         this.commandParameters.put("default", new CommandParameter[] {
-                new CommandParameter("target", CommandParamType.TARGET, true)
+                new CommandParameter("player", CommandParamType.TARGET, true)
         });
     }
 

@@ -14,6 +14,9 @@ public class SetSpawnCommand extends CommandBase {
 
     public SetSpawnCommand(EssentialsAPI api) {
         super("setspawn", api);
+
+        // command parameters
+        commandParameters.clear();
     }
 
     @Override

@@ -14,8 +14,11 @@ public class HealCommand extends CommandBase {
 
     public HealCommand(EssentialsAPI api) {
         super("heal", api);
+
+        // command parameters
+        commandParameters.clear();
         this.commandParameters.put("default", new CommandParameter[] {
-                new CommandParameter("target", CommandParamType.TARGET, true)
+                new CommandParameter("player", CommandParamType.TARGET, true)
         });
     }
 

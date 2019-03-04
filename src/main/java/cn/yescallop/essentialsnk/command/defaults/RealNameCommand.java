@@ -13,8 +13,11 @@ public class RealNameCommand extends CommandBase {
 
     public RealNameCommand(EssentialsAPI api) {
         super("realname", api);
+
+        // command parameters
+        commandParameters.clear();
         this.commandParameters.put("default", new CommandParameter[] {
-                new CommandParameter("target", CommandParamType.TARGET, false)
+                new CommandParameter("player", CommandParamType.TARGET, false)
         });
     }
 

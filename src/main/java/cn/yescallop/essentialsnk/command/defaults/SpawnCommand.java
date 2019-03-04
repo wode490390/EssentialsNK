@@ -16,8 +16,11 @@ public class SpawnCommand extends CommandBase {
 
     public SpawnCommand(EssentialsAPI api) {
         super("spawn", api);
+
+        // command parameters
+        commandParameters.clear();
         this.commandParameters.put("default", new CommandParameter[] {
-                new CommandParameter("target", CommandParamType.TARGET, true)
+                new CommandParameter("player", CommandParamType.TARGET, true)
         });
     }
 

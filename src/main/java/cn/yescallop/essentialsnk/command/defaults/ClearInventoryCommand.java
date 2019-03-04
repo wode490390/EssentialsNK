@@ -14,6 +14,9 @@ public class ClearInventoryCommand extends CommandBase {
     public ClearInventoryCommand(EssentialsAPI api) {
         super("clearinventory", api);
         this.setAliases(new String[]{"ci", "clean", "clearinvent"});
+
+        // command parameters
+        commandParameters.clear();
         this.commandParameters.put("default", new CommandParameter[] {
                 new CommandParameter("target", CommandParamType.TARGET, true)
         });

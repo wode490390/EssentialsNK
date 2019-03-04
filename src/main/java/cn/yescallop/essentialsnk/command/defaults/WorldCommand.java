@@ -13,6 +13,9 @@ public class WorldCommand extends CommandBase {
 
     public WorldCommand(EssentialsAPI api) {
         super("world", api);
+
+        // command parameters
+        commandParameters.clear();
         this.commandParameters.put("default", new CommandParameter[] {
                 new CommandParameter("world", CommandParamType.TEXT, false)
         });

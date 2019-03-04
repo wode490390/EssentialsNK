@@ -14,8 +14,11 @@ public class VanishCommand extends CommandBase {
     public VanishCommand(EssentialsAPI api) {
         super("vanish", api);
         this.setAliases(new String[]{"v"});
+
+        // command parameters
+        commandParameters.clear();
         this.commandParameters.put("default", new CommandParameter[] {
-                new CommandParameter("target", CommandParamType.TARGET, true)
+                new CommandParameter("player", CommandParamType.TARGET, true)
         });
     }
 

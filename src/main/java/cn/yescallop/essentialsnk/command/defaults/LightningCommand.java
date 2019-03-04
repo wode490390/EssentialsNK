@@ -15,8 +15,11 @@ public class LightningCommand extends CommandBase {
     public LightningCommand(EssentialsAPI api) {
         super("lightning", api);
         this.setAliases(new String[]{"strike", "smite", "thor", "shock"});
+
+        // command parameters
+        commandParameters.clear();
         this.commandParameters.put("default", new CommandParameter[] {
-                new CommandParameter("target", CommandParamType.TARGET, true)
+                new CommandParameter("player", CommandParamType.TARGET, true)
         });
     }
 

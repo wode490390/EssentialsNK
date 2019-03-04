@@ -15,8 +15,11 @@ public class TPAcceptCommand extends CommandBase {
     public TPAcceptCommand(EssentialsAPI api) {
         super("tpaccept", api);
         this.setAliases(new String[]{"tpyes"});
+
+        // command parameters
+        commandParameters.clear();
         this.commandParameters.put("default", new CommandParameter[] {
-                new CommandParameter("target", CommandParamType.TARGET, true)
+                new CommandParameter("player", CommandParamType.TARGET, true)
         });
     }
 

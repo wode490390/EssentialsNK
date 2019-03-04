@@ -16,8 +16,11 @@ public class SudoCommand extends CommandBase {
 
     public SudoCommand(EssentialsAPI api) {
         super("sudo", api);
+
+        // command parameters
+        commandParameters.clear();
         this.commandParameters.put("default", new CommandParameter[]{
-                new CommandParameter("target", CommandParamType.TARGET, false),
+                new CommandParameter("player", CommandParamType.TARGET, false),
                 new CommandParameter("command", CommandParamType.COMMAND, false)
         });
     }

@@ -15,8 +15,11 @@ public class RepairCommand extends CommandBase {
     public RepairCommand(EssentialsAPI api) {
         super("repair", api);
         this.setAliases(new String[]{"fix"});
+
+        // command parameters
+        commandParameters.clear();
         this.commandParameters.put("default", new CommandParameter[] {
-                new CommandParameter("target", false, new String[] {"all", "hand"})
+                new CommandParameter("player", false, new String[] {"all", "hand"})
         });
     }
 

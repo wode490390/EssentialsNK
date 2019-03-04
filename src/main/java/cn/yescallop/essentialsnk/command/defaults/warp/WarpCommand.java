@@ -15,8 +15,15 @@ public class WarpCommand extends CommandBase {
     public WarpCommand(EssentialsAPI api) {
         super("warp", api);
         this.setAliases(new String[]{"warps"});
+
+        // command parameters
+        commandParameters.clear();
         this.commandParameters.put("default", new CommandParameter[] {
-                new CommandParameter("name", CommandParamType.TEXT, true)
+                new CommandParameter("warp", CommandParamType.STRING, true),
+        });
+        this.commandParameters.put("other", new CommandParameter[] {
+                new CommandParameter("player", CommandParamType.TARGET, false),
+                new CommandParameter("warp", CommandParamType.STRING, false)
         });
     }
 

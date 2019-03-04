@@ -13,6 +13,9 @@ public class ItemDBCommand extends CommandBase {
     public ItemDBCommand(EssentialsAPI api) {
         super("itemdb", api);
         this.setAliases(new String[]{"itemno", "durability", "dura"});
+
+        // command parameters
+        commandParameters.clear();
         this.commandParameters.put("default", new CommandParameter[] {
                 new CommandParameter("target", true, new String[]{"name", "id"})
         });

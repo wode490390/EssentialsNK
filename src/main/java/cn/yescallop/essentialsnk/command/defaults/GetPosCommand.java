@@ -14,8 +14,11 @@ public class GetPosCommand extends CommandBase {
     public GetPosCommand(EssentialsAPI api) {
         super("getpos", api);
         this.setAliases(new String[]{"coords", "position", "whereami", "getlocation", "getloc"});
+
+        // command parameters
+        commandParameters.clear();
         this.commandParameters.put("default", new CommandParameter[] {
-                new CommandParameter("target", CommandParamType.TARGET, true)
+                new CommandParameter("player", CommandParamType.TARGET, true)
         });
     }
 

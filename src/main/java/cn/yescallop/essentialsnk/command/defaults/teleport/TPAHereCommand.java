@@ -13,8 +13,11 @@ public class TPAHereCommand extends CommandBase {
 
     public TPAHereCommand(EssentialsAPI api) {
         super("tpahere", api);
+
+        // command parameters
+        commandParameters.clear();
         this.commandParameters.put("default", new CommandParameter[] {
-                new CommandParameter("target", CommandParamType.TARGET, false)
+                new CommandParameter("player", CommandParamType.TARGET, false)
         });
     }
 
