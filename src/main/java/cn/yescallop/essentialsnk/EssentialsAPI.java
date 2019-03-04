@@ -21,6 +21,7 @@ import cn.nukkit.nbt.tag.ListTag;
 import cn.nukkit.permission.PermissionAttachmentInfo;
 import cn.nukkit.plugin.PluginLogger;
 import cn.nukkit.utils.Config;
+import cn.nukkit.utils.ConfigSection;
 
 import java.io.File;
 import java.sql.Timestamp;
@@ -278,22 +279,28 @@ public class EssentialsAPI {
 
     public boolean setHome(IPlayer player, String name, Location pos) {
         this.homeConfig.reload();
-        Map<String, Object> map = this.homeConfig.get(player.getName().toLowerCase(), new HashMap<>());
+        checkAndUpdateLegacyHomes(player);
+        return setHome(player.getUniqueId(), name, pos);
+    }
+
+    public boolean setHome(UUID uuid, String name, Location location) {
+        Map<String, Object> map = getHomeMap(uuid, true);
 
         boolean replaced = map.containsKey(name);
-        Object[] home = new Object[]{pos.level.getName(), pos.x, pos.y, pos.z, pos.yaw, pos.pitch};
+        List home = Arrays.asList(location.level.getName(), location.x, location.y, location.z, location.yaw, location.pitch);
         map.put(name, home);
-        this.homeConfig.set(player.getName().toLowerCase(), map);
         this.homeConfig.save();
         return replaced;
     }
 
     public Location getHome(IPlayer player, String name) {
         this.homeConfig.reload();
-        Map<String, ArrayList<Object>> map = this.homeConfig.get(player.getName().toLowerCase(), null);
-        if (map == null) {
-            return null;
-        }
+        checkAndUpdateLegacyHomes(player);
+        return getHome(player.getUniqueId(), name);
+    }
+
+    public Location getHome(UUID uuid, String name) {
+        @SuppressWarnings("unchecked") Map<String, List<Object>> map = (Map) getHomeMap(uuid, false);
         List<Object> home = map.get(name);
         if (home == null || home.size() != 6) {
             return null;
@@ -303,30 +310,61 @@ public class EssentialsAPI {
 
     public void removeHome(IPlayer player, String name) {
         this.homeConfig.reload();
-        Map<String, Object> map = this.homeConfig.get(player.getName().toLowerCase(), null);
-        if (map == null) {
-            return;
-        }
-        map.remove(name);
-        this.homeConfig.set(player.getName().toLowerCase(), map);
+        checkAndUpdateLegacyHomes(player);
+        removeHome(player.getUniqueId(), name);
+    }
+
+    public void removeHome(UUID uuid, String name) {
+        getHomeMap(uuid, true).remove(name);
         this.homeConfig.save();
     }
 
     public String[] getHomesList(IPlayer player) {
         this.homeConfig.reload();
-        Map<String, Object> map = this.homeConfig.get(player.getName().toLowerCase(), null);
-        if (map == null) {
-            return new String[]{};
-        }
-        String[] list = map.keySet().toArray(new String[0]);
+        checkAndUpdateLegacyHomes(player);
+        return getHomesList(player.getUniqueId());
+    }
+
+    public String[] getHomesList(UUID uuid) {
+        String[] list = getHomeMap(uuid, false).keySet().toArray(new String[0]);
         Arrays.sort(list, String.CASE_INSENSITIVE_ORDER);
         return list;
     }
 
     public boolean isHomeExists(IPlayer player, String name) {
         this.homeConfig.reload();
-        Map<String, Object> map = this.homeConfig.get(player.getName().toLowerCase(), null);
-        return map != null && map.containsKey(name);
+        checkAndUpdateLegacyHomes(player);
+        return isHomeExists(player.getUniqueId(), name);
+    }
+
+    public boolean isHomeExists(UUID uuid, String name) {
+        return getHomeMap(uuid, false).containsKey(name);
+    }
+
+    private Map<String, Object> getHomeMap(UUID uuid, boolean set) {
+        ConfigSection section = this.homeConfig.getSection(uuid.toString());
+        if (set) {
+            this.homeConfig.set(uuid.toString(), section);
+        }
+        return section;
+    }
+
+    private void checkAndUpdateLegacyHomes(IPlayer player) {
+        String uuidString = player.getUniqueId().toString();
+        String name = player.getName().toLowerCase();
+        if (this.homeConfig.exists(name)) {
+            if (this.homeConfig.exists(uuidString)) {
+                ConfigSection section = this.homeConfig.getSection(uuidString);
+                this.homeConfig.getSection(name).forEach((s, o) -> {
+                    if (!section.containsKey(s)) {
+                        section.put(s, o);
+                    }
+                });
+                this.homeConfig.remove(name);
+            } else {
+                this.homeConfig.set(uuidString, this.homeConfig.get(name));
+            }
+        }
     }
 
     public boolean setWarp(String name, Location pos) {
@@ -389,23 +427,37 @@ public class EssentialsAPI {
     }
 
     //for peace
-    public boolean mute(Player player, int d, int h, int m, int s) {
+    public boolean mute(IPlayer player, int d, int h, int m, int s) {
         return this.mute(player, Duration.ZERO.plusDays(d).plusHours(h).plusMinutes(m).plusSeconds(s));
     }
 
     //for peace too -- lmlstarqaq
-    public boolean mute(Player player, Duration t) {
-        if (t.isNegative() || t.isZero()) return false;
+    public boolean mute(IPlayer player, Duration duration) {
+        checkAndUpdateLegacyMute(player);
+        return mute(player.getUniqueId(), duration);
+    }
+
+    public boolean mute(UUID uuid, int d, int h, int m, int s) {
+        return this.mute(uuid, Duration.ZERO.plusDays(d).plusHours(h).plusMinutes(m).plusSeconds(s));
+    }
+
+    public boolean mute(UUID uuid, Duration duration) {
+        if (duration.isNegative() || duration.isZero()) return false;
         // t>30 => (t!=30 && t>=30) => (t!=30 && t-30>=0) => (t!=30 && !(t-30<0))
-        if (t.toDays() != 30 && !(t.minus(THIRTY_DAYS).isNegative())) return false; // t>30
-        this.muteConfig.set(player.getName().toLowerCase(), Timestamp.valueOf(LocalDateTime.now().plus(t)).getTime() / 1000);
+        if (duration.toDays() != 30 && !(duration.minus(THIRTY_DAYS).isNegative())) return false; // t>30
+        this.muteConfig.set(uuid.toString(), Timestamp.valueOf(LocalDateTime.now().plus(duration)).getTime() / 1000);
         this.muteConfig.save();
         return true;
     }
 
     public Integer getRemainingTimeToUnmute(IPlayer player) {
         this.muteConfig.reload();
-        Integer time = (Integer) this.muteConfig.get(player.getName().toLowerCase());
+        checkAndUpdateLegacyMute(player);
+        return getRemainingTimeToUnmute(player.getUniqueId());
+    }
+
+    public Integer getRemainingTimeToUnmute(UUID uuid) {
+        Integer time = (Integer) this.muteConfig.get(uuid.toString());
         return time == null ? null : (int) (time - Timestamp.valueOf(LocalDateTime.now()).getTime() / 1000);
     }
 
@@ -414,6 +466,16 @@ public class EssentialsAPI {
         if (time == null) return false;
         if (time <= 0) {
             this.unmute(player);
+            return false;
+        }
+        return true;
+    }
+
+    public boolean isMuted(UUID uuid) {
+        Integer time = this.getRemainingTimeToUnmute(uuid);
+        if (time == null) return false;
+        if (time <= 0) {
+            this.unmute(uuid);
             return false;
         }
         return true;
@@ -429,8 +491,31 @@ public class EssentialsAPI {
     }
 
     public void unmute(IPlayer player) {
-        this.muteConfig.remove(player.getName().toLowerCase());
+        checkAndUpdateLegacyMute(player);
+        unmute(player.getUniqueId());
+    }
+
+    public void unmute(UUID uuid) {
+        this.muteConfig.remove(uuid.toString());
         this.muteConfig.save();
+    }
+
+    private void checkAndUpdateLegacyMute(IPlayer player) {
+        String uuidString = player.getUniqueId().toString();
+        String name = player.getName().toLowerCase();
+        if (this.muteConfig.exists(name)) {
+            if (this.muteConfig.exists(uuidString)) {
+                ConfigSection section = this.muteConfig.getSection(uuidString);
+                this.muteConfig.getSection(name).forEach((s, o) -> {
+                    if (!section.containsKey(s)) {
+                        section.put(s, o);
+                    }
+                });
+                this.homeConfig.remove(name);
+            } else {
+                this.muteConfig.set(uuidString, this.muteConfig.get(name));
+            }
+        }
     }
 
     // Scallop: Thanks lmlstarqaq
