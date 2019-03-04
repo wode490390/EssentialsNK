@@ -277,6 +277,10 @@ public class EssentialsAPI {
         return ignores != null && ignores.containsKey(targetId);
     }
 
+    public boolean setHome(Player player, String name, Location pos) {
+        return setHome(player.getUniqueId(), name, pos);
+    }
+
     public boolean setHome(IPlayer player, String name, Location pos) {
         return setHome(player.getUniqueId(), name, pos);
     }
@@ -291,6 +295,10 @@ public class EssentialsAPI {
         map.put(name, home);
         this.homeConfig.save();
         return replaced;
+    }
+
+    public Location getHome(Player player, String name) {
+        return getHome(player.getUniqueId(), name);
     }
 
     public Location getHome(IPlayer player, String name) {
@@ -308,6 +316,10 @@ public class EssentialsAPI {
         return new Location((double) home.get(1), (double) home.get(2), (double) home.get(3), (double) home.get(4), (double) home.get(5), this.getServer().getLevelByName((String) home.get(0)));
     }
 
+    public void removeHome(Player player, String name) {
+        removeHome(player.getUniqueId(), name);
+    }
+
     public void removeHome(IPlayer player, String name) {
         removeHome(player.getUniqueId(), name);
     }
@@ -317,6 +329,10 @@ public class EssentialsAPI {
         checkAndUpdateLegacyHomes(uuid);
         getHomeMap(uuid, true).remove(name);
         this.homeConfig.save();
+    }
+
+    public String[] getHomesList(Player player) {
+        return getHomesList(player.getUniqueId());
     }
 
     public String[] getHomesList(IPlayer player) {
@@ -329,6 +345,10 @@ public class EssentialsAPI {
         String[] list = getHomeMap(uuid, false).keySet().toArray(new String[0]);
         Arrays.sort(list, String.CASE_INSENSITIVE_ORDER);
         return list;
+    }
+
+    public boolean isHomeExists(Player player, String name) {
+        return isHomeExists(player.getUniqueId(), name);
     }
 
     public boolean isHomeExists(IPlayer player, String name) {
@@ -430,6 +450,14 @@ public class EssentialsAPI {
         return null;
     }
 
+    public boolean mute(Player player, int d, int h, int m, int s) {
+        return this.mute(player, Duration.ZERO.plusDays(d).plusHours(h).plusMinutes(m).plusSeconds(s));
+    }
+
+    public boolean mute(Player player, Duration duration) {
+        return mute(player.getUniqueId(), duration);
+    }
+
     //for peace
     public boolean mute(IPlayer player, int d, int h, int m, int s) {
         return this.mute(player, Duration.ZERO.plusDays(d).plusHours(h).plusMinutes(m).plusSeconds(s));
@@ -454,6 +482,10 @@ public class EssentialsAPI {
         return true;
     }
 
+    public Integer getRemainingTimeToUnmute(Player player) {
+        return getRemainingTimeToUnmute(player.getUniqueId());
+    }
+
     public Integer getRemainingTimeToUnmute(IPlayer player) {
         return getRemainingTimeToUnmute(player.getUniqueId());
     }
@@ -463,6 +495,10 @@ public class EssentialsAPI {
         checkAndUpdateLegacyMute(uuid);
         Integer time = (Integer) this.muteConfig.get(uuid.toString());
         return time == null ? null : (int) (time - Timestamp.valueOf(LocalDateTime.now()).getTime() / 1000);
+    }
+
+    public boolean isMuted(Player player) {
+        return isMuted(player.getUniqueId());
     }
 
     public boolean isMuted(IPlayer player) {
@@ -485,9 +521,18 @@ public class EssentialsAPI {
         return getDurationString(Duration.ZERO.plusDays(d).plusHours(h).plusMinutes(m).plusSeconds(s));
     }
 
+    public String getUnmuteTimeMessage(Player player) {
+        Integer time = this.getRemainingTimeToUnmute(player);
+        return getDurationString(Duration.ofSeconds(time));
+    }
+
     public String getUnmuteTimeMessage(IPlayer player) {
         Integer time = this.getRemainingTimeToUnmute(player);
         return getDurationString(Duration.ofSeconds(time));
+    }
+
+    public void unmute(Player player) {
+        unmute(player.getUniqueId());
     }
 
     public void unmute(IPlayer player) {
