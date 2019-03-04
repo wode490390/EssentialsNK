@@ -1,6 +1,7 @@
 package cn.yescallop.essentialsnk;
 
 import cn.nukkit.AdventureSettings;
+import cn.nukkit.IPlayer;
 import cn.nukkit.Player;
 import cn.nukkit.Server;
 import cn.nukkit.block.Block;
@@ -275,7 +276,7 @@ public class EssentialsAPI {
         return ignores != null && ignores.containsKey(targetId);
     }
 
-    public boolean setHome(Player player, String name, Location pos) {
+    public boolean setHome(IPlayer player, String name, Location pos) {
         this.homeConfig.reload();
         Map<String, Object> map = this.homeConfig.get(player.getName().toLowerCase(), new HashMap<>());
 
@@ -287,7 +288,7 @@ public class EssentialsAPI {
         return replaced;
     }
 
-    public Location getHome(Player player, String name) {
+    public Location getHome(IPlayer player, String name) {
         this.homeConfig.reload();
         Map<String, ArrayList<Object>> map = this.homeConfig.get(player.getName().toLowerCase(), null);
         if (map == null) {
@@ -300,7 +301,7 @@ public class EssentialsAPI {
         return new Location((double) home.get(1), (double) home.get(2), (double) home.get(3), (double) home.get(4), (double) home.get(5), this.getServer().getLevelByName((String) home.get(0)));
     }
 
-    public void removeHome(Player player, String name) {
+    public void removeHome(IPlayer player, String name) {
         this.homeConfig.reload();
         Map<String, Object> map = this.homeConfig.get(player.getName().toLowerCase(), null);
         if (map == null) {
@@ -311,7 +312,7 @@ public class EssentialsAPI {
         this.homeConfig.save();
     }
 
-    public String[] getHomesList(Player player) {
+    public String[] getHomesList(IPlayer player) {
         this.homeConfig.reload();
         Map<String, Object> map = this.homeConfig.get(player.getName().toLowerCase(), null);
         if (map == null) {
@@ -322,7 +323,7 @@ public class EssentialsAPI {
         return list;
     }
 
-    public boolean isHomeExists(Player player, String name) {
+    public boolean isHomeExists(IPlayer player, String name) {
         this.homeConfig.reload();
         Map<String, Object> map = this.homeConfig.get(player.getName().toLowerCase(), null);
         return map != null && map.containsKey(name);
@@ -402,13 +403,13 @@ public class EssentialsAPI {
         return true;
     }
 
-    public Integer getRemainingTimeToUnmute(Player player) {
+    public Integer getRemainingTimeToUnmute(IPlayer player) {
         this.muteConfig.reload();
         Integer time = (Integer) this.muteConfig.get(player.getName().toLowerCase());
         return time == null ? null : (int) (time - Timestamp.valueOf(LocalDateTime.now()).getTime() / 1000);
     }
 
-    public boolean isMuted(Player player) {
+    public boolean isMuted(IPlayer player) {
         Integer time = this.getRemainingTimeToUnmute(player);
         if (time == null) return false;
         if (time <= 0) {
@@ -422,12 +423,12 @@ public class EssentialsAPI {
         return getDurationString(Duration.ZERO.plusDays(d).plusHours(h).plusMinutes(m).plusSeconds(s));
     }
 
-    public String getUnmuteTimeMessage(Player player) {
+    public String getUnmuteTimeMessage(IPlayer player) {
         Integer time = this.getRemainingTimeToUnmute(player);
         return getDurationString(Duration.ofSeconds(time));
     }
 
-    public void unmute(Player player) {
+    public void unmute(IPlayer player) {
         this.muteConfig.remove(player.getName().toLowerCase());
         this.muteConfig.save();
     }
