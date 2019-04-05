@@ -13,14 +13,20 @@ public class TPAAllCommand extends CommandBase {
 
     public TPAAllCommand(EssentialsAPI api) {
         super("tpaall", api);
+
+        // command parameters
+        commandParameters.clear();
         this.commandParameters.put("default", new CommandParameter[] {
-                new CommandParameter("target", CommandParamType.TARGET, true)
+                new CommandParameter("player", CommandParamType.TARGET, true)
         });
     }
 
     public boolean execute(CommandSender sender, String label, String[] args) {
         if (!this.testPermission(sender)) {
             return false;
+        }
+        if (api.hasCooldown(sender)) {
+            return true;
         }
         Player player;
         if (args.length == 0) {

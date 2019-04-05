@@ -14,8 +14,11 @@ public class ExtinguishCommand extends CommandBase {
     public ExtinguishCommand(EssentialsAPI api) {
         super("extinguish", api);
         this.setAliases(new String[]{"ext"});
+
+        // command parameters
+        commandParameters.clear();
         this.commandParameters.put("default", new CommandParameter[] {
-                new CommandParameter("target", CommandParamType.TARGET, true)
+                new CommandParameter("player", CommandParamType.TARGET, true)
         });
     }
 

@@ -14,8 +14,11 @@ public class TPHereCommand extends CommandBase {
     public TPHereCommand(EssentialsAPI api) {
         super("tphere", api);
         this.setAliases(new String[]{"s"});
+
+        // command parameters
+        commandParameters.clear();
         this.commandParameters.put("default", new CommandParameter[] {
-                new CommandParameter("target", CommandParamType.TARGET, false)
+                new CommandParameter("player", CommandParamType.TARGET, false)
         });
     }
 

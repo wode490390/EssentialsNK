@@ -13,8 +13,11 @@ public class DelWarpCommand extends CommandBase {
     public DelWarpCommand(EssentialsAPI api) {
         super("delwarp", api);
         this.setAliases(new String[]{"remwarp", "rmwarp"});
+
+        // command parameters
+        commandParameters.clear();
         this.commandParameters.put("default", new CommandParameter[] {
-                new CommandParameter("name", CommandParamType.TEXT, false)
+                new CommandParameter("warp", CommandParamType.TEXT, false)
         });
     }
 

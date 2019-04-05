@@ -15,8 +15,11 @@ public class TPAcceptCommand extends CommandBase {
     public TPAcceptCommand(EssentialsAPI api) {
         super("tpaccept", api);
         this.setAliases(new String[]{"tpyes"});
+
+        // command parameters
+        commandParameters.clear();
         this.commandParameters.put("default", new CommandParameter[] {
-                new CommandParameter("target", CommandParamType.TARGET, true)
+                new CommandParameter("player", CommandParamType.TARGET, true)
         });
     }
 
@@ -58,9 +61,9 @@ public class TPAcceptCommand extends CommandBase {
         from.sendMessage(Language.translate("commands.tpaccept.accepted", to.getDisplayName()));
         sender.sendMessage(Language.translate("commands.generic.teleporting"));
         if (request.isTo()) {
-            from.teleport(to);
+            api.onTP(from, to, Language.translate("commands.generic.teleporting"));
         } else {
-            to.teleport(from);
+            api.onTP(to, from, Language.translate("commands.generic.teleporting"));
         }
         api.removeTPRequestBetween(from, to);
         return true;

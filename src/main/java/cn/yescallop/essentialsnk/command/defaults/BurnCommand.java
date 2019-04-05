@@ -13,6 +13,9 @@ public class BurnCommand extends CommandBase {
 
     public BurnCommand(EssentialsAPI api) {
         super("burn", api);
+
+        // command parameters
+        commandParameters.clear();
         this.commandParameters.put("default", new CommandParameter[] {
                 new CommandParameter("target", CommandParamType.TARGET, false),
                 new CommandParameter("time", CommandParamType.INT, false)

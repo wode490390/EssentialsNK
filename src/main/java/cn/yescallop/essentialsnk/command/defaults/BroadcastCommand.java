@@ -11,6 +11,9 @@ public class BroadcastCommand extends CommandBase {
     public BroadcastCommand(EssentialsAPI api) {
         super("broadcast", api);
         this.setAliases(new String[]{"bcast"});
+
+        // command parameters
+        commandParameters.clear();
         this.commandParameters.put("default", new CommandParameter[] {
                 new CommandParameter("message", CommandParamType.MESSAGE, true)
         });

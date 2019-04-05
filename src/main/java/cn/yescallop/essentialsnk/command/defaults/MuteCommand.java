@@ -21,8 +21,11 @@ public class MuteCommand extends CommandBase {
     public MuteCommand(EssentialsAPI api) {
         super("mute", api);
         this.setAliases(new String[]{"silence"});
+
+        // command parameters
+        commandParameters.clear();
         this.commandParameters.put("default", new CommandParameter[] {
-                new CommandParameter("target", CommandParamType.TARGET, false),
+                new CommandParameter("player", CommandParamType.TARGET, false),
                 new CommandParameter("days", CommandParamType.INT, true),
                 new CommandParameter("hours", CommandParamType.INT, true),
                 new CommandParameter("minutes", CommandParamType.INT, true),

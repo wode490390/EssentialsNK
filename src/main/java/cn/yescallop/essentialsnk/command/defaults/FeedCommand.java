@@ -15,8 +15,11 @@ public class FeedCommand extends CommandBase {
     public FeedCommand(EssentialsAPI api) {
         super("feed", api);
         this.setAliases(new String[]{"eat"});
+
+        // command parameters
+        commandParameters.clear();
         this.commandParameters.put("default", new CommandParameter[] {
-                new CommandParameter("target", CommandParamType.TARGET, true)
+                new CommandParameter("player", CommandParamType.TARGET, true)
         });
     }
 

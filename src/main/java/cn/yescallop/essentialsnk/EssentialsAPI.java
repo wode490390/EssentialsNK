@@ -5,6 +5,7 @@ import cn.nukkit.IPlayer;
 import cn.nukkit.Player;
 import cn.nukkit.Server;
 import cn.nukkit.block.Block;
+import cn.nukkit.command.CommandSender;
 import cn.nukkit.entity.weather.EntityLightning;
 import cn.nukkit.item.Item;
 import cn.nukkit.item.ItemArmor;
@@ -17,17 +18,24 @@ import cn.nukkit.nbt.tag.CompoundTag;
 import cn.nukkit.nbt.tag.DoubleTag;
 import cn.nukkit.nbt.tag.FloatTag;
 import cn.nukkit.nbt.tag.ListTag;
+import cn.nukkit.permission.PermissionAttachmentInfo;
 import cn.nukkit.plugin.PluginLogger;
 import cn.nukkit.utils.Config;
+import cn.nukkit.utils.ConfigSection;
 
 import java.io.File;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class EssentialsAPI {
 
+    private static final Pattern COOLDOWN_PATTERN = Pattern.compile("^essentialsnk\\.cooldown\\.([0-9]+)$");
+    private static final Pattern TP_COOLDOWN_PATTERN = Pattern.compile("^essentialsnk\\.tp\\.cooldown\\.([0-9]+)$");
     public static final Integer[] NON_SOLID_BLOCKS = new Integer[]{Block.AIR, Block.SAPLING, Block.WATER, Block.STILL_WATER, Block.LAVA, Block.STILL_LAVA, Block.COBWEB, Block.TALL_GRASS, Block.BUSH, Block.DANDELION,
             Block.POPPY, Block.BROWN_MUSHROOM, Block.RED_MUSHROOM, Block.TORCH, Block.FIRE, Block.WHEAT_BLOCK, Block.SIGN_POST, Block.WALL_SIGN, Block.SUGARCANE_BLOCK,
             Block.PUMPKIN_STEM, Block.MELON_STEM, Block.VINE, Block.CARROT_BLOCK, Block.POTATO_BLOCK, Block.DOUBLE_PLANT};
@@ -35,6 +43,8 @@ public class EssentialsAPI {
     private static Duration THIRTY_DAYS = Duration.ZERO.plusDays(30);
     private Vector3 temporalVector = new Vector3();
     private EssentialsNK plugin;
+    private final Map<CommandSender, Long> cooldown = new HashMap<>();
+    private final List<TPCooldown> tpCooldowns = new ArrayList<>();
     private Map<Player, Location> playerLastLocation = new HashMap<>();
     private Map<Integer, TPRequest> tpRequests = new HashMap<>();
     private List<Player> vanishedPlayers = new ArrayList<>();
@@ -70,6 +80,68 @@ public class EssentialsAPI {
 
     public Location getLastLocation(Player player) {
         return this.playerLastLocation.get(player);
+    }
+
+    public boolean hasCooldown(CommandSender sender) {
+        long cooldown = Long.MAX_VALUE;
+        for (PermissionAttachmentInfo info : sender.getEffectivePermissions().values()) {
+            Matcher matcher = COOLDOWN_PATTERN.matcher(info.getPermission().toLowerCase());
+            if (matcher.find()) {
+                int time = Integer.parseInt(matcher.group(1));
+                if (time < cooldown) {
+                    cooldown = time;
+                }
+            }
+        }
+
+        if (!sender.isOp() && cooldown < Long.MAX_VALUE) {
+            long currentTime = System.currentTimeMillis();
+            long lastCooldown = this.cooldown.getOrDefault(sender, -1L) + TimeUnit.SECONDS.toMillis(cooldown);
+
+            if (currentTime > lastCooldown) {
+                this.cooldown.put(sender, currentTime);
+            } else {
+                long timeLeft = TimeUnit.MILLISECONDS.toSeconds(lastCooldown - currentTime);
+                sender.sendMessage(Language.translate("commands.generic.cooldown", timeLeft));
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private OptionalInt hasTPCooldown(Player player) {
+        int cooldown = Integer.MAX_VALUE;
+        for (PermissionAttachmentInfo info : player.getEffectivePermissions().values()) {
+            Matcher matcher = TP_COOLDOWN_PATTERN.matcher(info.getPermission().toLowerCase());
+            if (matcher.find()) {
+                int time = Integer.parseInt(matcher.group(1));
+                if (time < cooldown) {
+                    cooldown = time;
+                }
+            }
+        }
+
+        if (!player.isOp() && cooldown < Integer.MAX_VALUE) {
+            return OptionalInt.of(cooldown);
+        }
+        return OptionalInt.empty();
+    }
+
+    public void onTP(Player player, Position position, String message) {
+        OptionalInt cooldown = hasTPCooldown(player);
+
+        if (cooldown.isPresent()) {
+            player.sendMessage(Language.translate("commands.generic.teleporation.cooldown", cooldown.getAsInt()));
+            tpCooldowns.add(new TPCooldown(player, position,
+                    System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(cooldown.getAsInt()), message));
+        } else {
+            player.teleport(position);
+            player.sendMessage(message);
+        }
+    }
+
+    public List<TPCooldown> getTpCooldowns() {
+        return tpCooldowns;
     }
 
     public boolean switchCanFly(Player player) {
@@ -135,12 +207,12 @@ public class EssentialsAPI {
         lightning.spawnToAll();
     }
 
-    private int getHashCode(Player from, Player to, boolean isTo) {
+    private static int getHashCode(Player from, Player to, boolean isTo) {
         return from.hashCode() + to.hashCode() + Boolean.hashCode(isTo);
     }
 
     public void requestTP(Player from, Player to, boolean isTo) {
-        this.tpRequests.put(this.getHashCode(from, to, isTo), new TPRequest(System.currentTimeMillis(), from, to, isTo));
+        this.tpRequests.put(getHashCode(from, to, isTo), new TPRequest(System.currentTimeMillis(), from, to, isTo));
     }
 
     public TPRequest getLatestTPRequestTo(Player player) {
@@ -155,19 +227,20 @@ public class EssentialsAPI {
 
     public TPRequest getTPRequestBetween(Player from, Player to) {
         int key;
-        if (this.tpRequests.containsKey(key = this.getHashCode(from, to, true)) || this.tpRequests.containsKey(key = this.getHashCode(from, to, false))) {
+        if (this.tpRequests.containsKey(key = getHashCode(from, to, true)) || this.tpRequests.containsKey(key = getHashCode(from, to, false))) {
             return this.tpRequests.get(key);
         }
         return null;
     }
 
     public boolean hasTPRequestBetween(Player from, Player to) {
-        return this.tpRequests.containsKey(this.getHashCode(from, to, true)) || this.tpRequests.containsKey(this.getHashCode(from, to, false));
+        return this.tpRequests.containsKey(getHashCode(from, to, true)) || this.tpRequests.containsKey(getHashCode(from, to, false));
     }
 
     public void removeTPRequestBetween(Player from, Player to) {
-        this.tpRequests.remove(this.getHashCode(from, to, true));
-        this.tpRequests.remove(this.getHashCode(from, to, false));
+        this.tpRequests.remove(getHashCode(from, to, true));
+        this.tpRequests.remove(getHashCode(from, to, false));
+
     }
 
     public void removeTPRequest(Player player) {
@@ -205,23 +278,37 @@ public class EssentialsAPI {
     }
 
     public boolean setHome(Player player, String name, Location pos) {
+        return setHome(player.getUniqueId(), name, pos);
+    }
+
+    public boolean setHome(IPlayer player, String name, Location pos) {
+        return setHome(player.getUniqueId(), name, pos);
+    }
+
+    public boolean setHome(UUID uuid, String name, Location location) {
         this.homeConfig.reload();
-        Map<String, Object> map = this.homeConfig.get(player.getName().toLowerCase(), new HashMap<>());
+        checkAndUpdateLegacyHomes(uuid);
+        Map<String, Object> map = getHomeMap(uuid, true);
 
         boolean replaced = map.containsKey(name);
-        Object[] home = new Object[]{pos.level.getName(), pos.x, pos.y, pos.z, pos.yaw, pos.pitch};
+        List home = Arrays.asList(location.level.getName(), location.x, location.y, location.z, location.yaw, location.pitch);
         map.put(name, home);
-        this.homeConfig.set(player.getName().toLowerCase(), map);
         this.homeConfig.save();
         return replaced;
     }
 
     public Location getHome(Player player, String name) {
+        return getHome(player.getUniqueId(), name);
+    }
+
+    public Location getHome(IPlayer player, String name) {
+        return getHome(player.getUniqueId(), name);
+    }
+
+    public Location getHome(UUID uuid, String name) {
         this.homeConfig.reload();
-        Map<String, ArrayList<Object>> map = this.homeConfig.get(player.getName().toLowerCase(), null);
-        if (map == null) {
-            return null;
-        }
+        checkAndUpdateLegacyHomes(uuid);
+        @SuppressWarnings("unchecked") Map<String, List<Object>> map = (Map) getHomeMap(uuid, false);
         List<Object> home = map.get(name);
         if (home == null || home.size() != 6) {
             return null;
@@ -230,31 +317,78 @@ public class EssentialsAPI {
     }
 
     public void removeHome(Player player, String name) {
+        removeHome(player.getUniqueId(), name);
+    }
+
+    public void removeHome(IPlayer player, String name) {
+        removeHome(player.getUniqueId(), name);
+    }
+
+    public void removeHome(UUID uuid, String name) {
         this.homeConfig.reload();
-        Map<String, Object> map = this.homeConfig.get(player.getName().toLowerCase(), null);
-        if (map == null) {
-            return;
-        }
-        map.remove(name);
-        this.homeConfig.set(player.getName().toLowerCase(), map);
+        checkAndUpdateLegacyHomes(uuid);
+        getHomeMap(uuid, true).remove(name);
         this.homeConfig.save();
     }
 
     public String[] getHomesList(Player player) {
+        return getHomesList(player.getUniqueId());
+    }
+
+    public String[] getHomesList(IPlayer player) {
+        return getHomesList(player.getUniqueId());
+    }
+
+    public String[] getHomesList(UUID uuid) {
         this.homeConfig.reload();
-        Map<String, Object> map = this.homeConfig.get(player.getName().toLowerCase(), null);
-        if (map == null) {
-            return new String[]{};
-        }
-        String[] list = map.keySet().toArray(new String[0]);
+        checkAndUpdateLegacyHomes(uuid);
+        String[] list = getHomeMap(uuid, false).keySet().toArray(new String[0]);
         Arrays.sort(list, String.CASE_INSENSITIVE_ORDER);
         return list;
     }
 
     public boolean isHomeExists(Player player, String name) {
+        return isHomeExists(player.getUniqueId(), name);
+    }
+
+    public boolean isHomeExists(IPlayer player, String name) {
+        return isHomeExists(player.getUniqueId(), name);
+    }
+
+    public boolean isHomeExists(UUID uuid, String name) {
         this.homeConfig.reload();
-        Map<String, Object> map = this.homeConfig.get(player.getName().toLowerCase(), null);
-        return map != null && map.containsKey(name);
+        checkAndUpdateLegacyHomes(uuid);
+        return getHomeMap(uuid, false).containsKey(name);
+    }
+
+    private Map<String, Object> getHomeMap(UUID uuid, boolean set) {
+        ConfigSection section = this.homeConfig.getSection(uuid.toString());
+        if (set) {
+            this.homeConfig.set(uuid.toString(), section);
+        }
+        return section;
+    }
+
+    private void checkAndUpdateLegacyHomes(UUID uuid) {
+        IPlayer player = getServer().getOfflinePlayer(uuid);
+        if (player == null) {
+            return;
+        }
+        String uuidString = player.getUniqueId().toString();
+        String name = player.getName().toLowerCase();
+        if (this.homeConfig.exists(name)) {
+            if (this.homeConfig.exists(uuidString)) {
+                ConfigSection section = this.homeConfig.getSection(uuidString);
+                this.homeConfig.getSection(name).forEach((s, o) -> {
+                    if (!section.containsKey(s)) {
+                        section.put(s, o);
+                    }
+                });
+                this.homeConfig.remove(name);
+            } else {
+                this.homeConfig.set(uuidString, this.homeConfig.get(name));
+            }
+        }
     }
 
     public boolean setWarp(String name, Location pos) {
@@ -316,32 +450,68 @@ public class EssentialsAPI {
         return null;
     }
 
-    //for peace
     public boolean mute(Player player, int d, int h, int m, int s) {
         return this.mute(player, Duration.ZERO.plusDays(d).plusHours(h).plusMinutes(m).plusSeconds(s));
     }
 
+    public boolean mute(Player player, Duration duration) {
+        return mute(player.getUniqueId(), duration);
+    }
+
+    //for peace
+    public boolean mute(IPlayer player, int d, int h, int m, int s) {
+        return this.mute(player, Duration.ZERO.plusDays(d).plusHours(h).plusMinutes(m).plusSeconds(s));
+    }
+
     //for peace too -- lmlstarqaq
-    public boolean mute(Player player, Duration t) {
-        if (t.isNegative() || t.isZero()) return false;
+    public boolean mute(IPlayer player, Duration duration) {
+        return mute(player.getUniqueId(), duration);
+    }
+
+    public boolean mute(UUID uuid, int d, int h, int m, int s) {
+        return this.mute(uuid, Duration.ZERO.plusDays(d).plusHours(h).plusMinutes(m).plusSeconds(s));
+    }
+
+    public boolean mute(UUID uuid, Duration duration) {
+        checkAndUpdateLegacyMute(uuid);
+        if (duration.isNegative() || duration.isZero()) return false;
         // t>30 => (t!=30 && t>=30) => (t!=30 && t-30>=0) => (t!=30 && !(t-30<0))
-        if (t.toDays() != 30 && !(t.minus(THIRTY_DAYS).isNegative())) return false; // t>30
-        this.muteConfig.set(player.getName().toLowerCase(), Timestamp.valueOf(LocalDateTime.now().plus(t)).getTime() / 1000);
+        if (duration.toDays() != 30 && !(duration.minus(THIRTY_DAYS).isNegative())) return false; // t>30
+        this.muteConfig.set(uuid.toString(), Timestamp.valueOf(LocalDateTime.now().plus(duration)).getTime() / 1000);
         this.muteConfig.save();
         return true;
     }
 
     public Integer getRemainingTimeToUnmute(Player player) {
+        return getRemainingTimeToUnmute(player.getUniqueId());
+    }
+
+    public Integer getRemainingTimeToUnmute(IPlayer player) {
+        return getRemainingTimeToUnmute(player.getUniqueId());
+    }
+
+    public Integer getRemainingTimeToUnmute(UUID uuid) {
         this.muteConfig.reload();
-        Integer time = (Integer) this.muteConfig.get(player.getName().toLowerCase());
+        checkAndUpdateLegacyMute(uuid);
+        Integer time = (Integer) this.muteConfig.get(uuid.toString());
         return time == null ? null : (int) (time - Timestamp.valueOf(LocalDateTime.now()).getTime() / 1000);
     }
 
     public boolean isMuted(Player player) {
-        Integer time = this.getRemainingTimeToUnmute(player);
+        return isMuted(player.getUniqueId());
+    }
+
+    public boolean isMuted(IPlayer player) {
+        return isMuted(player.getUniqueId());
+    }
+
+    public boolean isMuted(UUID uuid) {
+        this.muteConfig.reload();
+        checkAndUpdateLegacyMute(uuid);
+        Integer time = this.getRemainingTimeToUnmute(uuid);
         if (time == null) return false;
         if (time <= 0) {
-            this.unmute(player);
+            this.unmute(uuid);
             return false;
         }
         return true;
@@ -356,9 +526,45 @@ public class EssentialsAPI {
         return getDurationString(Duration.ofSeconds(time));
     }
 
+    public String getUnmuteTimeMessage(IPlayer player) {
+        Integer time = this.getRemainingTimeToUnmute(player);
+        return getDurationString(Duration.ofSeconds(time));
+    }
+
     public void unmute(Player player) {
-        this.muteConfig.remove(player.getName().toLowerCase());
+        unmute(player.getUniqueId());
+    }
+
+    public void unmute(IPlayer player) {
+        unmute(player.getUniqueId());
+    }
+
+    public void unmute(UUID uuid) {
+        checkAndUpdateLegacyMute(uuid);
+        this.muteConfig.remove(uuid.toString());
         this.muteConfig.save();
+    }
+
+    private void checkAndUpdateLegacyMute(UUID uuid) {
+        IPlayer player = getServer().getOfflinePlayer(uuid);
+        if (player == null) {
+            return;
+        }
+        String uuidString = player.getUniqueId().toString();
+        String name = player.getName().toLowerCase();
+        if (this.muteConfig.exists(name)) {
+            if (this.muteConfig.exists(uuidString)) {
+                ConfigSection section = this.muteConfig.getSection(uuidString);
+                this.muteConfig.getSection(name).forEach((s, o) -> {
+                    if (!section.containsKey(s)) {
+                        section.put(s, o);
+                    }
+                });
+                this.homeConfig.remove(name);
+            } else {
+                this.muteConfig.set(uuidString, this.muteConfig.get(name));
+            }
+        }
     }
 
     // Scallop: Thanks lmlstarqaq

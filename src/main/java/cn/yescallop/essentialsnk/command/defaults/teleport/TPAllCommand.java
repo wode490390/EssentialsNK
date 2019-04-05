@@ -13,8 +13,11 @@ public class TPAllCommand extends CommandBase {
 
     public TPAllCommand(EssentialsAPI api) {
         super("tpall", api);
+
+        // command parameters
+        commandParameters.clear();
         this.commandParameters.put("default", new CommandParameter[] {
-                new CommandParameter("target", CommandParamType.TARGET, true)
+                new CommandParameter("player", CommandParamType.TARGET, true)
         });
     }
 

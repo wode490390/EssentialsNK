@@ -18,6 +18,9 @@ public class RenameCommand extends CommandBase {
         super("rename", api);
         this.setAliases(new String[]{"renameme"});
 
+
+        // command parameters
+        commandParameters.clear();
         this.commandParameters.put("default", new CommandParameter[] {
                 new CommandParameter("name", CommandParamType.STRING, false)
         });
