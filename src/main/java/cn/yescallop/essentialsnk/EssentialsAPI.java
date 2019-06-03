@@ -244,12 +244,7 @@ public class EssentialsAPI {
     }
 
     public void removeTPRequest(Player player) {
-        for (Map.Entry<Integer, TPRequest> entry : this.tpRequests.entrySet()) {
-            TPRequest request = entry.getValue();
-            if (request.getFrom() == player || request.getTo() == player) {
-                this.tpRequests.remove(entry.getKey());
-            }
-        }
+        this.tpRequests.values().removeIf(request -> request.getFrom() == player || request.getTo() == player);
     }
 
     public boolean ignore(UUID player, UUID toIgnore) {
