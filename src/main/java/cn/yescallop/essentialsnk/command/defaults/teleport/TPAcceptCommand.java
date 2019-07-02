@@ -58,12 +58,16 @@ public class TPAcceptCommand extends CommandBase {
                 return false;
             }
         }
+        if (request == null) {
+            sender.sendMessage(TextFormat.RED + Language.translate("commands.tpaccept.noRequest"));
+            return false;
+        }
         from.sendMessage(Language.translate("commands.tpaccept.accepted", to.getDisplayName()));
         sender.sendMessage(Language.translate("commands.generic.teleporting"));
         if (request.isTo()) {
-            api.onTP(from, to, Language.translate("commands.generic.teleporting"));
+            api.onTP(from, request.getLocation(), Language.translate("commands.generic.teleporting"));
         } else {
-            api.onTP(to, from, Language.translate("commands.generic.teleporting"));
+            api.onTP(to, request.getLocation(), Language.translate("commands.generic.teleporting"));
         }
         api.removeTPRequestBetween(from, to);
         return true;

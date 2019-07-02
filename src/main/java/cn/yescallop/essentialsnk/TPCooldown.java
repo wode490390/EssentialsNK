@@ -1,17 +1,17 @@
 package cn.yescallop.essentialsnk;
 
 import cn.nukkit.Player;
-import cn.nukkit.level.Position;
+import cn.nukkit.level.Location;
 
 public class TPCooldown {
     private final Player player;
-    private final Position position;
+    private final Location location;
     private final long timestamp;
     private final String message;
 
-    public TPCooldown(Player player, Position position, long timestamp, String message) {
+    public TPCooldown(Player player, Location location, long timestamp, String message) {
         this.player = player;
-        this.position = position;
+        this.location = location;
         this.timestamp = timestamp;
         this.message = message;
     }
@@ -21,7 +21,7 @@ public class TPCooldown {
     }
 
     public void execute() {
-        player.teleport(position);
+        player.teleport(location);
         player.sendMessage(message);
     }
 }

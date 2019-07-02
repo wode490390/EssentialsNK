@@ -28,12 +28,14 @@ import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class EssentialsAPI {
 
+    private static final long TP_EXPIRATION = TimeUnit.MINUTES.toMillis(1);
     private static final Pattern COOLDOWN_PATTERN = Pattern.compile("^essentialsnk\\.cooldown\\.([0-9]+)$");
     private static final Pattern TP_COOLDOWN_PATTERN = Pattern.compile("^essentialsnk\\.tp\\.cooldown\\.([0-9]+)$");
     public static final Integer[] NON_SOLID_BLOCKS = new Integer[]{Block.AIR, Block.SAPLING, Block.WATER, Block.STILL_WATER, Block.LAVA, Block.STILL_LAVA, Block.COBWEB, Block.TALL_GRASS, Block.BUSH, Block.DANDELION,
@@ -46,7 +48,7 @@ public class EssentialsAPI {
     private final Map<CommandSender, Long> cooldown = new HashMap<>();
     private final List<TPCooldown> tpCooldowns = new ArrayList<>();
     private Map<Player, Location> playerLastLocation = new HashMap<>();
-    private Map<Integer, TPRequest> tpRequests = new HashMap<>();
+    private Map<Integer, TPRequest> tpRequests = new ConcurrentHashMap<>();
     private List<Player> vanishedPlayers = new ArrayList<>();
     private Config homeConfig;
     private Config warpConfig;
@@ -60,6 +62,8 @@ public class EssentialsAPI {
         this.warpConfig = new Config(new File(plugin.getDataFolder(), "warp.yml"), Config.YAML);
         this.muteConfig = new Config(new File(plugin.getDataFolder(), "mute.yml"), Config.YAML);
         this.ignoreConfig = new Config(new File(plugin.getDataFolder(), "ignore.yml"), Config.YAML);
+        this.plugin.getServer().getScheduler().scheduleDelayedRepeatingTask(this.plugin, new TeleportationExpireTask(),
+                20, 20, true);
     }
 
     public static EssentialsAPI getInstance() {
@@ -128,14 +132,18 @@ public class EssentialsAPI {
     }
 
     public void onTP(Player player, Position position, String message) {
+        this.onTP(player, position.getLocation(), message);
+    }
+
+    public void onTP(Player player, Location location, String message) {
         OptionalInt cooldown = hasTPCooldown(player);
 
         if (cooldown.isPresent()) {
             player.sendMessage(Language.translate("commands.generic.teleporation.cooldown", cooldown.getAsInt()));
-            tpCooldowns.add(new TPCooldown(player, position,
+            tpCooldowns.add(new TPCooldown(player, location,
                     System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(cooldown.getAsInt()), message));
         } else {
-            player.teleport(position);
+            player.teleport(location);
             player.sendMessage(message);
         }
     }
@@ -212,7 +220,7 @@ public class EssentialsAPI {
     }
 
     public void requestTP(Player from, Player to, boolean isTo) {
-        this.tpRequests.put(getHashCode(from, to, isTo), new TPRequest(System.currentTimeMillis(), from, to, isTo));
+        this.tpRequests.put(getHashCode(from, to, isTo), new TPRequest(System.currentTimeMillis(), from, to, isTo ? to.getLocation() : from.getLocation(), isTo));
     }
 
     public TPRequest getLatestTPRequestTo(Player player) {
@@ -582,5 +590,24 @@ public class EssentialsAPI {
         else if (s > 0) s1 = Language.translate("commands.generic.second", s);
         //In some languages, times are read from SECONDS to HOURS, which should be noticed.
         return Language.translate("commands.generic.time.format", d1, h1, m1, s1).trim().replaceAll(" +", " ");
+    }
+
+    private class TeleportationExpireTask implements Runnable {
+
+        @Override
+        public void run() {
+            Iterator<TPRequest> requestIterator = EssentialsAPI.this.tpRequests.values().iterator();
+
+            long currentTime = System.currentTimeMillis();
+
+            while (requestIterator.hasNext()) {
+                TPRequest request = requestIterator.next();
+
+                long expirationTime = request.getStartTime() + TP_EXPIRATION;
+                if (currentTime >= expirationTime) {
+                    requestIterator.remove();
+                }
+            }
+        }
     }
 }
