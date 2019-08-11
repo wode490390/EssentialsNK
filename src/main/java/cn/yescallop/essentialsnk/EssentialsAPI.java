@@ -22,6 +22,9 @@ import cn.nukkit.permission.PermissionAttachmentInfo;
 import cn.nukkit.plugin.PluginLogger;
 import cn.nukkit.utils.Config;
 import cn.nukkit.utils.ConfigSection;
+import cn.yescallop.essentialsnk.util.ConfigType;
+import cn.yescallop.essentialsnk.util.Configs;
+import com.google.common.collect.ImmutableSet;
 
 import java.io.File;
 import java.sql.Timestamp;
@@ -50,24 +53,38 @@ public class EssentialsAPI {
     private Map<Player, Location> playerLastLocation = new HashMap<>();
     private Map<Integer, TPRequest> tpRequests = new ConcurrentHashMap<>();
     private List<Player> vanishedPlayers = new ArrayList<>();
-    private Config homeConfig;
-    private Config warpConfig;
-    private Config muteConfig;
-    private Config ignoreConfig;
+
+    private final ConfigType homeConfig;
+    private final ConfigType warpConfig;
+    private final ConfigType muteConfig;
+    private final ConfigType ignoreConfig;
+    private final Configs configs;
 
     public EssentialsAPI(EssentialsNK plugin) {
         instance = this;
         this.plugin = plugin;
-        this.homeConfig = new Config(new File(plugin.getDataFolder(), "home.yml"), Config.YAML);
-        this.warpConfig = new Config(new File(plugin.getDataFolder(), "warp.yml"), Config.YAML);
-        this.muteConfig = new Config(new File(plugin.getDataFolder(), "mute.yml"), Config.YAML);
-        this.ignoreConfig = new Config(new File(plugin.getDataFolder(), "ignore.yml"), Config.YAML);
+
+        this.homeConfig = new ConfigType(new File(plugin.getDataFolder(), "home.yml"), Config.YAML);
+        this.warpConfig = new ConfigType(new File(plugin.getDataFolder(), "warp.yml"), Config.YAML);
+        this.muteConfig = new ConfigType(new File(plugin.getDataFolder(), "mute.yml"), Config.YAML);
+        this.ignoreConfig = new ConfigType(new File(plugin.getDataFolder(), "ignore.yml"), Config.YAML);
+        Set<ConfigType> configTypes = ImmutableSet.of(this.homeConfig, this.warpConfig, this.muteConfig, this.ignoreConfig);
+        this.configs = new Configs(plugin, configTypes);
+
         this.plugin.getServer().getScheduler().scheduleDelayedRepeatingTask(this.plugin, new TeleportationExpireTask(),
                 20, 20, true);
     }
 
     public static EssentialsAPI getInstance() {
         return instance;
+    }
+
+    public String getVersion() {
+        return this.plugin.getDescription().getVersion();
+    }
+
+    public void reload() {
+        this.configs.reload();
     }
 
     public Server getServer() {
@@ -256,18 +273,16 @@ public class EssentialsAPI {
     }
 
     public boolean ignore(UUID player, UUID toIgnore) {
-        this.ignoreConfig.reload();
         String playerId = player.toString();
         String toIgnoreId = toIgnore.toString();
-        Map<String, Object> ignores = this.ignoreConfig.get(playerId, new HashMap<>());
+        Map<String, Object> ignores = this.configs.get(this.ignoreConfig, playerId, new HashMap<>());
         boolean add = !ignores.containsKey(toIgnoreId);
         if (add) {
             ignores.put(toIgnoreId, null);
         } else {
             ignores.remove(toIgnoreId);
         }
-        this.ignoreConfig.set(playerId, ignores);
-        this.ignoreConfig.save();
+        this.configs.set(this.ignoreConfig, playerId, ignores);
         return add;
     }
 
@@ -275,7 +290,7 @@ public class EssentialsAPI {
         String playerId = player.toString();
         String targetId = target.toString();
 
-        Map<String, Object> ignores = this.ignoreConfig.get(playerId, null);
+        Map<String, Object> ignores = this.configs.get(this.ignoreConfig, playerId, null);
 
         return ignores != null && ignores.containsKey(targetId);
     }
@@ -289,14 +304,12 @@ public class EssentialsAPI {
     }
 
     public boolean setHome(UUID uuid, String name, Location location) {
-        this.homeConfig.reload();
         checkAndUpdateLegacyHomes(uuid);
         Map<String, Object> map = getHomeMap(uuid, true);
 
         boolean replaced = map.containsKey(name);
         List home = Arrays.asList(location.level.getName(), location.x, location.y, location.z, location.yaw, location.pitch);
         map.put(name, home);
-        this.homeConfig.save();
         return replaced;
     }
 
@@ -309,7 +322,6 @@ public class EssentialsAPI {
     }
 
     public Location getHome(UUID uuid, String name) {
-        this.homeConfig.reload();
         checkAndUpdateLegacyHomes(uuid);
         @SuppressWarnings("unchecked") Map<String, List<Object>> map = (Map) getHomeMap(uuid, false);
         List<Object> home = map.get(name);
@@ -328,10 +340,8 @@ public class EssentialsAPI {
     }
 
     public void removeHome(UUID uuid, String name) {
-        this.homeConfig.reload();
         checkAndUpdateLegacyHomes(uuid);
         getHomeMap(uuid, true).remove(name);
-        this.homeConfig.save();
     }
 
     public String[] getHomesList(Player player) {
@@ -343,7 +353,6 @@ public class EssentialsAPI {
     }
 
     public String[] getHomesList(UUID uuid) {
-        this.homeConfig.reload();
         checkAndUpdateLegacyHomes(uuid);
         String[] list = getHomeMap(uuid, false).keySet().toArray(new String[0]);
         Arrays.sort(list, String.CASE_INSENSITIVE_ORDER);
@@ -359,15 +368,14 @@ public class EssentialsAPI {
     }
 
     public boolean isHomeExists(UUID uuid, String name) {
-        this.homeConfig.reload();
         checkAndUpdateLegacyHomes(uuid);
         return getHomeMap(uuid, false).containsKey(name);
     }
 
     private Map<String, Object> getHomeMap(UUID uuid, boolean set) {
-        ConfigSection section = this.homeConfig.getSection(uuid.toString());
+        ConfigSection section = this.configs.get(this.homeConfig, uuid.toString(), new ConfigSection());
         if (set) {
-            this.homeConfig.set(uuid.toString(), section);
+            this.configs.set(this.homeConfig, uuid.toString(), section);
         }
         return section;
     }
@@ -379,55 +387,49 @@ public class EssentialsAPI {
         }
         String uuidString = player.getUniqueId().toString();
         String name = player.getName().toLowerCase();
-        if (this.homeConfig.exists(name)) {
-            if (this.homeConfig.exists(uuidString)) {
-                ConfigSection section = this.homeConfig.getSection(uuidString);
-                this.homeConfig.getSection(name).forEach((s, o) -> {
-                    if (!section.containsKey(s)) {
-                        section.put(s, o);
+        if (this.configs.exists(this.homeConfig, name)) {
+            if (this.configs.exists(this.homeConfig, uuidString)) {
+                ConfigSection newSection = this.configs.get(this.homeConfig, uuidString, new ConfigSection());
+                ConfigSection oldSection = this.configs.get(this.homeConfig, name, new ConfigSection());
+                oldSection.getSection(name).forEach((s, o) -> {
+                    if (!newSection.containsKey(s)) {
+                        newSection.put(s, o);
                     }
                 });
-                this.homeConfig.remove(name);
+                this.configs.remove(this.homeConfig, name);
             } else {
-                this.homeConfig.set(uuidString, this.homeConfig.get(name));
+                this.configs.set(this.homeConfig, uuidString, this.configs.get(this.homeConfig, name, new ConfigSection()));
             }
         }
     }
 
     public boolean setWarp(String name, Location pos) {
-        this.warpConfig.reload();
-        boolean replaced = warpConfig.exists(name);
+        boolean replaced = this.configs.exists(this.warpConfig, name);
         Object[] home = new Object[]{pos.level.getName(), pos.x, pos.y, pos.z, pos.yaw, pos.pitch};
-        this.warpConfig.set(name, home);
-        this.warpConfig.save();
+        this.configs.set(this.warpConfig, name, home);
         return replaced;
     }
 
     public Location getWarp(String name) {
-        this.warpConfig.reload();
-        List warp = this.warpConfig.getList(name);
-        if (warp == null || warp.size() != 6) {
+        List warp = this.configs.get(this.warpConfig, name, Collections.emptyList());
+        if (warp.size() != 6) {
             return null;
         }
         return new Location((double) warp.get(1), (double) warp.get(2), (double) warp.get(3), (double) warp.get(4), (double) warp.get(5), this.getServer().getLevelByName((String) warp.get(0)));
     }
 
     public void removeWarp(String name) {
-        this.warpConfig.reload();
-        this.warpConfig.remove(name);
-        this.warpConfig.save();
+        this.configs.remove(this.warpConfig, name);
     }
 
     public String[] getWarpsList() {
-        this.warpConfig.reload();
-        String[] list = this.warpConfig.getKeys().toArray(new String[0]);
+        String[] list = this.configs.getKeys(this.warpConfig).toArray(new String[0]);
         Arrays.sort(list, String.CASE_INSENSITIVE_ORDER);
         return list;
     }
 
     public boolean isWarpExists(String name) {
-        this.warpConfig.reload();
-        return this.warpConfig.exists(name);
+        return this.configs.exists(this.warpConfig, name);
     }
 
     public Position getStandablePositionAt(Position pos) {
@@ -480,8 +482,7 @@ public class EssentialsAPI {
         if (duration.isNegative() || duration.isZero()) return false;
         // t>30 => (t!=30 && t>=30) => (t!=30 && t-30>=0) => (t!=30 && !(t-30<0))
         if (duration.toDays() != 30 && !(duration.minus(THIRTY_DAYS).isNegative())) return false; // t>30
-        this.muteConfig.set(uuid.toString(), Timestamp.valueOf(LocalDateTime.now().plus(duration)).getTime() / 1000);
-        this.muteConfig.save();
+        this.configs.set(this.muteConfig, uuid.toString(), Timestamp.valueOf(LocalDateTime.now().plus(duration)).getTime() / 1000);
         return true;
     }
 
@@ -494,9 +495,8 @@ public class EssentialsAPI {
     }
 
     public Integer getRemainingTimeToUnmute(UUID uuid) {
-        this.muteConfig.reload();
         checkAndUpdateLegacyMute(uuid);
-        Integer time = (Integer) this.muteConfig.get(uuid.toString());
+        Integer time = (Integer) this.configs.get(this.muteConfig, uuid.toString(), 0);
         return time == null ? null : (int) (time - Timestamp.valueOf(LocalDateTime.now()).getTime() / 1000);
     }
 
@@ -509,7 +509,6 @@ public class EssentialsAPI {
     }
 
     public boolean isMuted(UUID uuid) {
-        this.muteConfig.reload();
         checkAndUpdateLegacyMute(uuid);
         Integer time = this.getRemainingTimeToUnmute(uuid);
         if (time == null) return false;
@@ -544,8 +543,7 @@ public class EssentialsAPI {
 
     public void unmute(UUID uuid) {
         checkAndUpdateLegacyMute(uuid);
-        this.muteConfig.remove(uuid.toString());
-        this.muteConfig.save();
+        this.configs.remove(this.muteConfig, uuid.toString());
     }
 
     private void checkAndUpdateLegacyMute(UUID uuid) {
@@ -555,17 +553,18 @@ public class EssentialsAPI {
         }
         String uuidString = player.getUniqueId().toString();
         String name = player.getName().toLowerCase();
-        if (this.muteConfig.exists(name)) {
-            if (this.muteConfig.exists(uuidString)) {
-                ConfigSection section = this.muteConfig.getSection(uuidString);
-                this.muteConfig.getSection(name).forEach((s, o) -> {
-                    if (!section.containsKey(s)) {
-                        section.put(s, o);
+        if (this.configs.exists(this.muteConfig, name)) {
+            if (this.configs.exists(this.muteConfig, uuidString)) {
+                ConfigSection newSection = this.configs.get(this.muteConfig, uuidString, new ConfigSection());
+                ConfigSection oldSection = this.configs.get(this.muteConfig, name, new ConfigSection());
+                oldSection.forEach((s, o) -> {
+                    if (!newSection.containsKey(s)) {
+                        newSection.put(s, o);
                     }
                 });
-                this.homeConfig.remove(name);
+                this.configs.remove(this.muteConfig, name);
             } else {
-                this.muteConfig.set(uuidString, this.muteConfig.get(name));
+                this.configs.set(this.muteConfig, uuidString, this.configs.get(this.muteConfig, name, new ConfigSection()));
             }
         }
     }
