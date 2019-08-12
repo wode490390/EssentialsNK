@@ -9,6 +9,8 @@ import cn.yescallop.essentialsnk.EssentialsAPI;
 import cn.yescallop.essentialsnk.Language;
 import cn.yescallop.essentialsnk.command.CommandBase;
 
+import java.util.OptionalInt;
+
 public class SetHomeCommand extends CommandBase {
 
     public SetHomeCommand(EssentialsAPI api) {
@@ -40,7 +42,18 @@ public class SetHomeCommand extends CommandBase {
             sender.sendMessage(TextFormat.RED + Language.translate("commands.sethome.empty"));
             return false;
         }
-        sender.sendMessage(api.setHome((Player) sender, args[0].toLowerCase(), (Player) sender) ? Language.translate("commands.sethome.updated", args[0]) : Language.translate("commands.sethome.success", args[0]));
+        Player player = (Player) sender;
+        OptionalInt allowedHomes = api.getAllowedHomes(player);
+        if (allowedHomes.isPresent()) {
+            int currentHomesCount = api.getHomesList(player).length;
+            if (currentHomesCount >= allowedHomes.getAsInt()) {
+                sender.sendMessage(TextFormat.RED + Language.translate("commands.sethome.limit"));
+                return true;
+            }
+        }
+        sender.sendMessage(api.setHome(player, args[0].toLowerCase(), player) ?
+                Language.translate("commands.sethome.updated", args[0]) :
+                Language.translate("commands.sethome.success", args[0]));
         return true;
     }
 }

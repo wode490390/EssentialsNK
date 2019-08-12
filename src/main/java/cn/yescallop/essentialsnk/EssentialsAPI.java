@@ -39,8 +39,9 @@ import java.util.regex.Pattern;
 public class EssentialsAPI {
 
     private static final long TP_EXPIRATION = TimeUnit.MINUTES.toMillis(1);
-    private static final Pattern COOLDOWN_PATTERN = Pattern.compile("^essentialsnk\\.cooldown\\.([0-9]+)$");
-    private static final Pattern TP_COOLDOWN_PATTERN = Pattern.compile("^essentialsnk\\.tp\\.cooldown\\.([0-9]+)$");
+    private static final Pattern COOLDOWN_PATTERN = Pattern.compile("^essentialsnk\\.cooldown\\.([0-9]+)$", Pattern.CASE_INSENSITIVE);
+    private static final Pattern TP_COOLDOWN_PATTERN = Pattern.compile("^essentialsnk\\.tp\\.cooldown\\.([0-9]+)$", Pattern.CASE_INSENSITIVE);
+    private static final Pattern HOMES_PERMISSION_PATTERN = Pattern.compile("^essentialsnk\\.homes\\.([0-9]+)$", Pattern.CASE_INSENSITIVE);
     public static final Integer[] NON_SOLID_BLOCKS = new Integer[]{Block.AIR, Block.SAPLING, Block.WATER, Block.STILL_WATER, Block.LAVA, Block.STILL_LAVA, Block.COBWEB, Block.TALL_GRASS, Block.BUSH, Block.DANDELION,
             Block.POPPY, Block.BROWN_MUSHROOM, Block.RED_MUSHROOM, Block.TORCH, Block.FIRE, Block.WHEAT_BLOCK, Block.SIGN_POST, Block.WALL_SIGN, Block.SUGARCANE_BLOCK,
             Block.PUMPKIN_STEM, Block.MELON_STEM, Block.VINE, Block.CARROT_BLOCK, Block.POTATO_BLOCK, Block.DOUBLE_PLANT};
@@ -106,7 +107,7 @@ public class EssentialsAPI {
     public boolean hasCooldown(CommandSender sender) {
         long cooldown = Long.MAX_VALUE;
         for (PermissionAttachmentInfo info : sender.getEffectivePermissions().values()) {
-            Matcher matcher = COOLDOWN_PATTERN.matcher(info.getPermission().toLowerCase());
+            Matcher matcher = COOLDOWN_PATTERN.matcher(info.getPermission());
             if (matcher.find()) {
                 int time = Integer.parseInt(matcher.group(1));
                 if (time < cooldown) {
@@ -133,7 +134,7 @@ public class EssentialsAPI {
     private OptionalInt hasTPCooldown(Player player) {
         int cooldown = Integer.MAX_VALUE;
         for (PermissionAttachmentInfo info : player.getEffectivePermissions().values()) {
-            Matcher matcher = TP_COOLDOWN_PATTERN.matcher(info.getPermission().toLowerCase());
+            Matcher matcher = TP_COOLDOWN_PATTERN.matcher(info.getPermission());
             if (matcher.find()) {
                 int time = Integer.parseInt(matcher.group(1));
                 if (time < cooldown) {
@@ -144,6 +145,24 @@ public class EssentialsAPI {
 
         if (!player.isOp() && cooldown < Integer.MAX_VALUE) {
             return OptionalInt.of(cooldown);
+        }
+        return OptionalInt.empty();
+    }
+
+    public OptionalInt getAllowedHomes(Player player) {
+        int homes = 0;
+        for (PermissionAttachmentInfo info : player.getEffectivePermissions().values()) {
+            Matcher matcher = HOMES_PERMISSION_PATTERN.matcher(info.getPermission());
+            if (matcher.find()) {
+                int newHomes = Integer.parseInt(matcher.group(1));
+                if (homes < newHomes) {
+                    homes = newHomes;
+                }
+            }
+        }
+
+        if (!player.isOp() && homes > 0) {
+            return OptionalInt.of(homes);
         }
         return OptionalInt.empty();
     }
@@ -304,6 +323,7 @@ public class EssentialsAPI {
     }
 
     public boolean setHome(UUID uuid, String name, Location location) {
+
         checkAndUpdateLegacyHomes(uuid);
         Map<String, Object> map = getHomeMap(uuid, true);
 
