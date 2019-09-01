@@ -30,11 +30,11 @@ public class DelWarpCommand extends CommandBase {
             return false;
         }
         if (!api.isWarpExists(args[0].toLowerCase())) {
-            sender.sendMessage(TextFormat.RED + Language.translate("commands.warp.notexists"));
+            sender.sendMessage(TextFormat.RED + Language.translate("commands.warp.notexists", args[0]));
             return false;
         }
         api.removeWarp(args[0].toLowerCase());
-        sender.sendMessage(Language.translate("commands.delwarp.success"));
+        sender.sendMessage(Language.translate("commands.delwarp.success", args[0]));
         return true;
     }
 }
